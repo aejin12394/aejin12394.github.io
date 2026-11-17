@@ -1432,9 +1432,7 @@
       '<div class="who"><span>' + esc(BRN) + ' · ' + esc(TRN) + ' 트레이너</span></div>' +
       '</div>' + attCheckStrip() + '</div></div></div>';
 
-    h += reportHomeCard();
-    h += journeyHome();
-    if (IB_ON) h += ibHomeStrip() || '<span class="ibstrip-slot"></span>';
+    /* 2026-11-17 선생님 "홈에 오늘의 운동 루틴·오늘의 자세 복습지부터": 출석 → 오늘의 운동 → 오늘의 자세 복습지 → 리포트·여정·인바디·수업·공지 */
     h += '<section>' + head("", ROT ? "오늘 할 운동" : "오늘의 운동", ROT ? dayName(k) + " 차례" : DAY_KO[k] + "요일", '<a class="more" href="#routine-' + k + '">자세히 →</a>');
     if (!d) {
       h += '<div class="panel empty"><h3>루틴이 아직 없어요</h3><p>선생님이 곧 올려드릴게요</p></div>';
@@ -1457,6 +1455,11 @@
     }
     h += '</section>';
 
+    h += todayForms(d);
+    h += reportHomeCard();
+    h += journeyHome();
+    if (IB_ON) h += ibHomeStrip() || '<span class="ibstrip-slot"></span>';
+
     if (M.next_class) {
       h += '<div class="panel next"><svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true"><rect x="4" y="7" width="32" height="29" rx="6" fill="var(--primary)"/><rect x="4" y="7" width="32" height="9" rx="4" fill="var(--side)"/><rect x="11" y="3" width="4" height="9" rx="2" fill="var(--key)"/><rect x="25" y="3" width="4" height="9" rx="2" fill="var(--key)"/></svg>' +
         '<div><small style="font-size:12px;color:var(--faint);font-weight:700">다음 PT 수업</small><b>' + esc(M.next_class) + '</b></div></div>';
@@ -1467,11 +1470,18 @@
       h += '<section>' + head("", "선생님 공지", "", '<a class="more" href="#notice">전체 →</a>') + noticeCard(n) + '</section>';
     }
 
-    h += '<section>' + head("", "최근 자세 복습지", "", '<a class="more" href="#forms">전체 →</a>');
-    h += M.forms.length ? '<div class="flist">' + M.forms.slice(0, 2).map(formCard).join("") + '</div>'
-      : '<div class="panel empty"><h3>아직 복습지가 없어요</h3><p>수업에서 배운 자세가 여기에 쌓여요</p></div>';
-    h += '</section>';
     return h + remember();
+  }
+  /* 오늘의 자세 복습지: 오늘 루틴 종목에 붙은 복습지(itemForm) → 없으면 최근 복습지 2개 */
+  function todayForms(d) {
+    var list = [];
+    (d && d.items || []).forEach(function (it) { var f = itemForm(it); if (f && list.indexOf(f) < 0) list.push(f); });
+    var today = list.length > 0;
+    if (!today) list = (M.forms || []).slice(0, 2);
+    var h = '<section>' + head("", "오늘의 자세 복습지", today ? "오늘 할 종목 자세를 미리 봐요" : (list.length ? "최근에 배운 자세" : ""), '<a class="more" href="#forms">전체 →</a>');
+    h += list.length ? '<div class="flist">' + list.map(formCard).join("") + '</div>'
+      : '<div class="panel empty"><h3>아직 복습지가 없어요</h3><p>수업에서 배운 자세가 여기에 쌓여요</p></div>';
+    return h + '</section>';
   }
 
   /* ---------------- 공지 */
