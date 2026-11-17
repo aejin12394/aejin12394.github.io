@@ -535,6 +535,8 @@ button.ba { border: 0; padding: 0; font: inherit; color: inherit; cursor: zoom-i
 </div>
 
 <script src="members.js"></script>
+<script src="/assets/site.js"></script>
+<script src="/assets/roster.js"></script>
 <script>
 (function () {
   "use strict";
@@ -640,13 +642,9 @@ button.ba { border: 0; padding: 0; font: inherit; color: inherit; cursor: zoom-i
   }
   paintNums();
 
-  function loadMember(slug) {
-    return fetch("/m/" + slug + "/data.js", { cache: "no-store" }).then(function (r) { return r.text(); })
-      .then(function (t) { var w = {}; new Function("window", t)(w); return w.MEMBER; })
-      .catch(function () { return null; });
-  }
+  function loadMember(slug) { return window.PTR.load(slug).catch(function () { return null; }); }   /* 파일 회원 + 앱 회원 (assets/roster.js) */
   var pool = [];
-  Promise.all(LIST.map(loadMember)).then(function (all) {
+  window.PTR.slugs(window.COACH_MEMBERS).then(function (l) { LIST = l; return Promise.all(LIST.map(loadMember)); }).then(function (all) {
     all.forEach(function (M, i) { if (M) pool.push({ slug: LIST[i], M: M }); });   /* "보기 →" 누를 때 고를 회원 */
     var ms = all.filter(Boolean), feed = [], rows = [], names = [];
     ms.forEach(function (M) { String(M.name || "").split("·").forEach(function (n) { n = n.trim(); if (n) names.push(n); }); });

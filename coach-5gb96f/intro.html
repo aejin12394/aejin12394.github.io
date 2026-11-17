@@ -358,6 +358,8 @@ body { font-family: 'Noto Sans KR', 'Apple SD Gothic Neo', sans-serif; touch-act
   <button class="nav" type="button" id="next" aria-label="다음 쪽">→</button>
 </div>
 <script src="members.js"></script>
+<script src="/assets/site.js"></script>
+<script src="/assets/roster.js"></script>
 <script>
 (function () {
   try { sessionStorage.removeItem("ptdemo"); } catch (e) {}
@@ -430,11 +432,22 @@ body { font-family: 'Noto Sans KR', 'Apple SD Gothic Neo', sans-serif; touch-act
   function nDate(t) { var m = String(t || "").match(/(\d{4})\D+(\d{1,2})\D+(\d{1,2})/); return m ? new Date(+m[1], +m[2] - 1, +m[3]) : null; }
   function kindOf(t) { return /복습지/.test(t) ? ["복습지", ""] : /루틴/.test(t) ? ["루틴", "r"] : /식단/.test(t) ? ["식단", "d"] : ["공지", ""]; }
   function shortTitle(t) { return String(t).replace(/루틴이\s*(v\d+)\s*(으)?로 바뀌었어요/, "루틴 $1 업데이트").replace(/(이|가) 올라왔어요/, " 업로드").replace(/(으)?로 바뀌었어요/, " 업데이트"); }
-  function loadMember(slug) {
-    return fetch("/m/" + slug + "/data.js", { cache: "no-store" }).then(function (r) { return r.text(); })
-      .then(function (t) { var w = {}; new Function("window", t)(w); return w.MEMBER; }).catch(function () { return null; });
-  }
-  Promise.all((window.COACH_MEMBERS || []).map(loadMember)).then(function (all) {
+  function loadMember(slug) { return window.PTR.load(slug).catch(function () { return null; }); }   /* 파일 회원 + 앱 회원 (assets/roster.js) */
+  var IL = [];
+  window.PTR.slugs(window.COACH_MEMBERS).then(function (l) { IL = l; return Promise.all(l.map(loadMember)); }).then(function (all) {
+    /* "보기 →" 링크 = 실제 회원 노트 (그 내용이 있는 회원 먼저, 없으면 첫 회원 / 회원이 없으면 숨김) */
+    [].forEach.call(document.querySelectorAll('a[href*="/m/sample-k7d2qx/"]'), function (a) {
+      var h = a.getAttribute("href"), tab = (h.split("#")[1] || "home"), pick = -1;
+      all.forEach(function (M, i) {
+        if (!M || pick >= 0) return;
+        var has = tab === "routine" ? !!M.routine : /^form/.test(tab) ? (M.forms || []).length : tab === "diet" ? !!M.diet : true;
+        if (has) pick = i;
+      });
+      if (pick < 0) all.forEach(function (M, i) { if (M && pick < 0) pick = i; });
+      if (pick < 0) { a.style.visibility = "hidden"; return; }
+      var M = all[pick], hash = /^form/.test(tab) ? ((M.forms || [])[0] ? "form-" + M.forms[0].id : "forms") : tab;
+      a.setAttribute("href", "/m/" + IL[pick] + "/?demo#" + hash);
+    });
     var ms = all.filter(Boolean), feed = [], rows = [], names = [];
     ms.forEach(function (M) { String(M.name || "").split("·").forEach(function (n) { n = n.trim(); if (n) names.push(n); }); });
     ms.forEach(function (M) {

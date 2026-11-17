@@ -2278,14 +2278,24 @@
     if (!/^\/coach-[a-z0-9]+\/$/.test(cp)) return Promise.reject(new Error("coach"));
     return fetch(cp + "members.js", { cache: "no-store" }).then(function (r) { return r.text(); }).then(function (t) {
       var w = {}; new Function("window", t)(w);
-      var list = (w.COACH_MEMBERS || []).filter(function (sl) { return sl !== SLUG; });
+      var list = (w.COACH_MEMBERS || []).slice();
+      /* 앱에서 만든 회원(창고 명단, 2026-11-17)도 같이 — 파일이 없어서 루틴은 폰에서 만든 것만 있음 */
+      var co = SITE.coach || "";
+      return (ATT_API && co ? fetch(ATT_API + "?m=" + encodeURIComponent(co), { cache: "no-store" }).then(function (r) { return r.json(); }).catch(function () { return null; }) : Promise.resolve(null)).then(function (j0) {
+        var ro = j0 && j0.kv && j0.kv["pub:m:" + co + ":roster"];
+        (Array.isArray(ro) ? ro : []).forEach(function (x) { if (x && x.slug && list.indexOf(x.slug) < 0) list.push(x.slug); });
+        return list.filter(function (sl) { return sl !== SLUG; });
+      });
+    }).then(function (list) {
       return Promise.all(list.map(function (sl) {
-        return fetch("/m/" + sl + "/data.js", { cache: "no-store" }).then(function (r) { return r.text(); }).then(function (t2) {
-          var w2 = {}; new Function("window", t2)(w2);
-          var O = w2.MEMBER; if (!O || !O.routine) return null;
+        return fetch("/m/" + sl + "/data.js", { cache: "no-store" }).then(function (r) { if (!r.ok) throw new Error("app"); return r.text(); }).catch(function () { return "/*app*/"; }).then(function (t2) {
+          var w2 = {}; if (t2 !== "/*app*/") new Function("window", t2)(w2);
+          var O = w2.MEMBER || { name: "", sex: "M", routine: null, _app: 1 };
+          if (!O.routine && !O._app) return null;
           var base = rtBase(O.routine);
           return (ATT_API ? fetch(ATT_API + "?m=" + encodeURIComponent(sl)).then(function (r) { return r.json(); }).catch(function () { return null; }) : Promise.resolve(null)).then(function (j) {
             var R = j && j.routine && j.routine.routine && j.routine.base === base ? j.routine.routine : O.routine;
+            if (O._app) { var pf = j && j.kv && j.kv["pub:m:" + sl + ":profile"]; if (!pf || !R) return null; O.name = pf.name; O.sex = pf.sex; }
             return { slug: sl, name: O.name, sex: O.sex, R: R, ed: R !== O.routine };
           });
         }).catch(function () { return null; });

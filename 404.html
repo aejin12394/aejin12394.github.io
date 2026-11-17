@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>PT 노트 · GYMTOS 도당점</title>
+<meta name="description" content="내 루틴, 자세 복습지, 식단, 선생님 공지를 한곳에서">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#ffffff">
+<meta property="og:type" content="website">
+<meta property="og:title" content="PT 노트 · GYMTOS 도당점">
+<meta property="og:description" content="내 루틴, 자세 복습지, 식단, 선생님 공지를 한곳에서">
+<link rel="icon" href="/assets/icon.png?v=3">
+<link rel="apple-touch-icon" href="/assets/icon.png?v=3">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap">
+<link rel="stylesheet" href="/assets/style.css">
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-check" viewBox="0 0 12 12"><path d="M2.4 6.3 5 8.7l4.6-5.2" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-x" viewBox="0 0 12 12"><path d="M3.3 3.3l5.4 5.4M8.7 3.3 3.3 8.7" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round"/></symbol>
+</svg>
+<header class="bar"><div class="bar-in"><a href="#home"><img src="/assets/logo.png" alt="GYMTOS"></a><span id="barName">PT 노트</span></div></header>
+<main class="wrap"><div class="view" id="view" aria-live="polite"><div class="panel" id="nfBox" style="text-align:center;padding:36px 18px"><h2 style="margin:0 0 6px;font-size:20px">PT 노트 여는 중…</h2><p style="margin:0;color:var(--faint);font-size:14px">잠깐만 기다려 주세요</p></div></div></main>
+<nav class="tabs" aria-label="메뉴"><div class="tabs-in">
+  <a href="#home" data-tab="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3.5 10.5 12 4l8.5 6.5V20a1 1 0 0 1-1 1H15v-6H9v6H4.5a1 1 0 0 1-1-1z"/></svg>홈</a>
+  <a href="#forms" data-tab="forms"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m10 9 5 3-5 3z" fill="currentColor"/></svg>복습지</a>
+  <a href="#routine" data-tab="routine"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6.5 8v8M17.5 8v8M3.5 10v4M20.5 10v4M6.5 12h11"/></svg>루틴</a>
+  <a href="#diet" data-tab="diet"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="13" cy="13" r="6.5"/><path d="M4 4v6M6.5 4v6M4 7h2.5M5.2 10v10"/></svg>식단</a>
+  <a href="#notice" data-tab="notice"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 10v4h3l6 4V6L7 10z"/><path d="M16.5 9.5a3.5 3.5 0 0 1 0 5M19 7a7 7 0 0 1 0 10" stroke-linecap="round"/></svg>공지</a>
+</div></nav>
+<script src="/assets/site.js"></script>
+<script src="/assets/roster.js"></script>
+<script>
+/* 404 = 파일이 없는 주소. /m/<주소>/ 이면 선생님이 앱에서 만든 회원 → 창고에서 정보를 받아 노트를 그림 (assets/roster.js) */
+(function () {
+  "use strict";
+  var p = location.pathname, m = p.match(/^\/m\/([a-z0-9-]{3,40})\/?$/);
+  function notFound(t, s) {
+    var b = document.getElementById("nfBox");
+    b.innerHTML = '<h2 style="margin:0 0 6px;font-size:20px">' + t + '</h2><p style="margin:0;color:var(--faint);font-size:14px;line-height:1.6">' + s + '</p>';
+    document.querySelector("nav.tabs").style.display = "none";
+  }
+  if (!m) { notFound("페이지를 찾을 수 없어요", "주소를 다시 확인해 주세요"); return; }
+  if (!/\/$/.test(p)) { location.replace(p + "/" + location.search + location.hash); return; }
+  var slug = m[1], LS = "ptnote:" + slug + ":profile", api = (window.SITE || {}).att_api || "";
+  window.ATT_SLUG = slug;
+  function start(prof) {
+    var M = window.PTR.fromProfile(prof);
+    window.MEMBER = M;
+    var nm = M.name + " 회원님 PT 노트";
+    document.title = nm + " · " + ((window.SITE || {}).brand || "GYMTOS") + " " + ((window.SITE || {}).branch || "");
+    document.getElementById("barName").textContent = nm;
+    document.getElementById("view").innerHTML = "";
+    ["/assets/exicons.js", "/assets/app.js"].forEach(function (src) {
+      var s = document.createElement("script"); s.src = src; s.async = false; document.body.appendChild(s);
+    });
+  }
+  var cached = null;
+  try { cached = JSON.parse(localStorage.getItem(LS) || "null"); } catch (e) {}
+  fetch(api + "?m=" + encodeURIComponent(slug), { cache: "no-store" }).then(function (r) { return r.json(); }).then(function (j) {
+    var prof = j && j.kv && j.kv["pub:m:" + slug + ":profile"];
+    if (prof) { try { localStorage.setItem(LS, JSON.stringify(prof)); } catch (e) {} start(prof); }
+    else { try { localStorage.removeItem(LS); } catch (e) {} notFound("없는 PT 노트예요", "주소가 맞는지 선생님께 확인해 주세요"); }
+  }).catch(function () {
+    if (cached) start(cached);
+    else notFound("PT 노트를 못 불러왔어요", "인터넷 연결을 확인하고 새로고침해 주세요");
+  });
+})();
+</script>
+</body>
+</html>

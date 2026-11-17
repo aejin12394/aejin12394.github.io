@@ -18,7 +18,7 @@
 - [ ] 4 선생님 폰 연결  ← **여기부터 이어서**
 - [x] 5 테마
 - [~] 6 PT 안내서: 이름·경력·자격·프로필 사진(guide/trainer.jpg) 채움. 비포애프터·화면 그림(placeholder.svg)은 아직.
-- [ ] 7 샘플 회원 정리 (샘플 og.jpg 는 색만 바꾼 것)
+- [x] 7 샘플 회원 정리 (2026-11-17 지움. 새 회원 껍데기 견본은 `_tools/member_index_template.html`, data.js 견본은 `_tools/member_data_sample.js`)
 - [ ] 8 커밋·푸시·확인
 
 ## 처음 세팅 (Claude가 순서대로 — 선생님에게는 꼭 필요한 것만 물어볼 것)
@@ -82,14 +82,29 @@ _tools/anatomy_v3.py  인체모형 v3 (자극 부위 그림). build(경로, 앞 
 ```
 
 ## 회원 목록
+회원은 두 군데에 있음 — **둘 다 봐야 전체 명단** (아래 '앱에서 만든 회원' 참고).
+1. 파일 회원(Claude가 만든 것): 아래 표 + `coach-5gb96f/members.js`
+2. 앱 회원(선생님이 선생님 페이지 "+ 새 회원 추가"로 만든 것): 출석 창고 명단 `pub:m:coach-5gb96f:roster`
+
 | 회원 | 주소 | 성별 |
 |---|---|---|
-| 홍길동 (샘플, 가상) | m/sample-k7d2qx/ | M |
+| (아직 없음) | | |
+
+## 앱에서 만든 회원 · Claude와 맞추기 (2026-11-17 선생님 "앱에서도 회원 추가, 너도 연동되게")
+- 선생님 페이지 회원 목록 위 **"+ 새 회원 추가"**(이름·성별·PT 시작일·목표, 선생님 열쇠) → 주소 `m/<이름 로마자>-<랜덤6>/` 를 만들고 창고 '저장소'에 저장:
+  `pub:m:coach-5gb96f:roster` = [{slug, name, sex, at}] (명단) · `pub:m:<주소>:profile` = {name, sex, goal, start, at}. 만들면 회원님께 보낼 주소·복사·보내기 버튼이 바로 나옴. 같은 칸 아래 "앱에서 만든 회원 · 명단에서 빼기"(두 번 눌러야 빠짐, 출석 기록은 창고에 남음).
+- 파일이 없는 주소라 GitHub Pages가 **404.html** 을 보여 주고, 404.html이 창고에서 profile을 받아 `window.MEMBER`를 만든 뒤 app.js를 띄움(휴대폰에 ptnote:<주소>:profile 로 기억 → 인터넷이 잠깐 안 돼도 열림). 루틴·복습지·식단은 비어 있음 → 선생님이 폰에서 "✎ 새 루틴 만들기"로 바로 만들 수 있음(기준 base = "").
+- 공통 코드 `assets/roster.js`(PTR.slugs·load·create·remove·fromProfile·roman) — 선생님 페이지·PT 안내서(guide·intro)·루틴 가져오기(app.js rtLoadOthers)가 파일 회원 + 앱 회원을 같이 씀. `assets/site.js` 의 `coach` = 선생님 폴더 이름.
+- **Claude가 할 일 (맞추기)**
+  - 회원 이야기가 나오면 members.js에 없을 때 **창고 명단을 먼저 확인**: 브라우저(크롬/내장)로 `https://aejin12394.github.io/` 탭을 열고 `fetch(SITE.att_api + "?m=coach-5gb96f").then(r=>r.json()).then(j=>j.kv["pub:m:coach-5gb96f:roster"])` (열쇠 필요 없음). 이 작업 공간(샌드박스)에서는 script.google.com에 못 닿음.
+  - 앱 회원에게 복습지·식단·루틴(data.js)을 올려 달라고 하면: **같은 주소**로 `m/<그 주소>/` 파일 회원을 만듦(껍데기 = `_tools/member_index_template.html`, data.js 의 name·sex·goal·journey.start 는 profile 값). 파일이 생기면 파일이 이김 — 회원님 주소는 그대로. members.js 와 위 표에 추가.
+    - 폰에서 만든 루틴이 있으면(창고 GET 응답 routine, base "") 그 내용을 data.js routine 으로 옮길 것 — 안 그러면 data.js 기준이 달라져 폰 루틴이 꺼짐.
+  - Claude가 파일로 만든 회원은 창고 명단에 안 넣음(members.js가 명단).
 
 ## 새 회원 PT 노트 만들기
 0. **PT 시작일을 꼭 받기** (트레이너이 말해줌, "10월"처럼 달만 주면 그 달 15일로). 안 알려주면 물어볼 것. → data.js journey.start
 1. 주소: `m/<이름 로마자>-<랜덤 소문자·숫자 6자>/` (예: jisu-k3x9qa). 추측하기 어렵게.
-2. `m/sample-k7d2qx/index.html` 복사(아이콘 `icon.png?v=3` 줄·site.js·exicons.js·app.js 스크립트 태그 그대로) → 제목·og:title·헤더 문구의 이름, og:image 경로, theme-color(여 #B28B0A) 바꾸기.
+2. `_tools/member_index_template.html` 복사(아이콘 `icon.png?v=3` 줄·site.js·exicons.js·app.js 스크립트 태그 그대로) → 제목·og:title·헤더 문구의 이름, og:image 경로, theme-color(여 #B28B0A) 바꾸기.
 3. data.js 작성 (아래 형식). sex "F"면 핑크 테마·핑크 아이콘 자동.
 4. og.jpg 생성 (1200×630, 테마색 배경 + 로고 + "MY PT NOTE · 나만의 운동 노트" + "OOO 회원님" + 아래 띠 "GYMTOS 도당점 · 담당 OOO 트레이너").
 5. 위 회원 목록 표에 추가하고, coach-5gb96f/members.js에도 주소 추가.
@@ -212,7 +227,7 @@ _tools/anatomy_v3.py  인체모형 v3 (자극 부위 그림). build(경로, 앞 
 ## 창고 배포는 Claude가 (2026-11-11 트레이너 "배포 귀찮다, 권한 주면 너가 해")
 - 트레이너 컴퓨터의 Claude 앱 내장 브라우저(built-in browser)에 구글 로그인돼 있음 → Claude가 직접 배포. 사용자에게 붙여넣기·배포를 시키지 말 것.
 - 순서: 내장 브라우저로 Apps Script 프로젝트 편집기 열기(script.google.com/home → 내 프로젝트) → javascript로 `monaco.editor.getModels()[0].pushEditOperations([], [{range: md.getFullModelRange(), text: CODE}], ()=>null)` (CODE = _tools/attendance_apps_script.gs 내용, JSON 문자열로) → 저장 아이콘 → 배포 ▾ → 배포 관리 → 연필 → 버전 "새 버전" → 배포. 배포 ID는 그대로라 사이트 주소 안 바꿔도 됨.
-- 확인: github.io 탭에서 fetch(ATT_API+"?m=sample-k7d2qx") 응답 키(ok·days·routine·bnotices·kv). 컴퓨터가 꺼져 있거나 로그인이 풀렸으면 그때만 트레이너에게 부탁.
+- 확인: github.io 탭에서 fetch(ATT_API+"?m=coach-5gb96f") 응답 키(ok·days·routine·bnotices·kv). 컴퓨터가 꺼져 있거나 로그인이 풀렸으면 그때만 트레이너에게 부탁.
 
 ## 새 공지 팝업 (2026-11-05 트레이너 요청)
 - data.js notices 맨 위에 새 공지를 올리면, 회원이 PT 노트를 열 때 화면 위에서 팝업이 내려왔다가 약 5초 뒤 사라짐(위로 밀어도 닫힘). 누르면 공지 탭의 그 공지로 이동해 반짝 표시.
