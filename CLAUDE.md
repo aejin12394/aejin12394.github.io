@@ -12,9 +12,9 @@
 - [x] 2 GitHub 저장소 `aejin12394.github.io` 만들어 올리기 + Pages 켜기 (2026-11-17 완료, 사이트 열림 확인)
   - [x] site.js(trainer·site) 채움, 주소 전부 aejin12394.github.io 로 바꿈
   - [x] 선생님 페이지 폴더 = `coach-5gb96f/` (전체 반영됨)
-- [ ] 3 출석 창고(Apps Script) 배포  ← **여기부터 이어서** → 웹 앱 URL을 assets/site.js att_api 에
+- [x] 3 출석 창고(Apps Script) 배포 (2026-11-17: 시트 "PT노트 출석", 프로젝트 "PT노트 출석 창고", Drive API 추가, 웹 앱 v1) → 웹 앱 URL을 assets/site.js att_api 에
   - [x] 열쇠 만들고 지문을 _tools/attendance_apps_script.gs RT_KEY_HASH 에 넣음 (열쇠는 선생님께 대화로 전달함 — 잃어버렸으면 make_key.py로 새로 만들고 지문 교체 후 재배포)
-- [ ] 4 선생님 폰 연결
+- [ ] 4 선생님 폰 연결  ← **여기부터 이어서**
 - [x] 5 테마
 - [~] 6 PT 안내서: 이름·경력·자격·프로필 사진(guide/trainer.jpg) 채움. 비포애프터·화면 그림(placeholder.svg)은 아직.
 - [ ] 7 샘플 회원 정리 (샘플 og.jpg 는 색만 바꾼 것)
