@@ -1126,3 +1126,102 @@ html.rts-open, html.rts-open body { overflow: hidden; }
 .rtcp-d b { color: var(--primary); }
 .rtcp-d em { font-style: normal; font-weight: 800; color: var(--ink); margin-right: 6px; }
 .rtcp-d.rest { opacity: .55; }
+
+/* ============================================================================
+   노트 테마 (2026-11-17 트레이너 "이대로 가자" — 손글씨 운동일지 사진처럼)
+   모눈종이 바탕 + 나눔손글씨 엄마사랑 + 검정 펜 · 노란 형광펜 · 빨간 밑줄 · 연보라 형광펜(소제목).
+   남·녀 회원 같은 테마(예전 초록/노랑 변수는 위에 그대로 — 이 블록을 지우면 예전 색으로 돌아감).
+   바프 패널·월간 리포트 카드·움직이는 아이콘 색은 그대로 둠.
+   ============================================================================ */
+@font-face {
+  font-family: "나눔손글씨 엄마사랑";
+  src: local("나눔손글씨 엄마사랑"), local("Nanum EomMaSaRang"),
+    url(https://cdn.jsdelivr.net/npm/@kfonts/nanum-handwritting-eommasalang@0.2.0/eommasalang.woff2) format("woff2"),
+    url(https://cdn.jsdelivr.net/npm/@kfonts/nanum-handwritting-eommasalang@0.2.0/eommasalang.woff) format("woff");
+  font-weight: 400; font-display: swap;
+}
+:root, :root[data-sex="F"] {
+  --hl: #FFF27A; --hl-soft: #FFFAD1; --pen: #E3261F; --lav: #DCDCFB; --grid: #DFE3E8;
+  --font: "나눔손글씨 엄마사랑", "Noto Sans KR", "Noto Sans CJK KR", "Malgun Gothic", "맑은 고딕", "Apple SD Gothic Neo", system-ui, sans-serif;
+  --page: #fff; --paper: #fff; --ink: #111; --sub: #2B2B2B; --faint: #555; --line: #C9CED6; --rule: #C9CED6;
+  --primary: #111; --side: #111; --key: var(--pen); --tint: var(--hl-soft); --tint2: var(--hl);
+  --muted: var(--lav); --dot: var(--hl);
+  --gold: #111; --gold-bg: var(--hl); --gold-line: var(--pen);
+  --pink: var(--pen); --pink-e: var(--pen); --pink-l: var(--hl);
+  --good: #111; --good-tint: var(--hl); --good-head: var(--lav);
+  --led: var(--pen);
+}
+html, body {
+  background-color: #fff;
+  background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 26px 26px;
+}
+/* 손글씨는 같은 px에서 작게 보여서 키움(font-size-adjust) + 펜 굵기 살짝 */
+body { font-size-adjust: .6; -webkit-text-stroke: .2px currentColor; }
+body, button, input, textarea, select { font-family: var(--font); }
+.bar { background: rgba(255, 255, 255, .92); border-bottom: 1.5px solid #111; }
+.tabs { background: rgba(255, 255, 255, .94); border-top: 1.5px solid #111; }
+.tabs a.lit::before { box-shadow: 0 0 0 2px #fff, 0 0 8px 2px var(--led); }
+
+/* 제목 카드: 색 상자 대신 종이 위 글씨 + 노란 형광펜 */
+.hero { border-radius: 0; overflow: visible; }
+.hero-l, .hero-r { background: transparent; color: var(--ink); padding-left: 4px; }
+.hero-l *, .hero-r * { color: var(--ink); }
+.hero .eyebrow, .hero .eyebrow * { color: var(--faint); }
+.hero .who span, .hero .en { color: var(--sub); }
+.hero h1 { display: inline-block; line-height: 1.35; background: linear-gradient(transparent 50%, var(--hl) 50%); padding: 0 8px; margin: 4px 0; }
+.keypoint { background: transparent; color: var(--ink); padding-left: 4px; }
+.keypoint small { color: var(--pen); }
+.keypoint p {
+  display: inline; background: linear-gradient(transparent 45%, var(--hl) 45%);
+  text-decoration: underline; text-decoration-color: var(--pen); text-decoration-thickness: 2.5px; text-underline-offset: 5px;
+}
+/* 오늘 출석 상자 */
+.hero .attq { background: rgba(255, 255, 255, .6); border: 1.4px solid #222; color: var(--ink); }
+.hero .attq .qlab, .hero .attq .qrate { color: var(--ink); }
+.hero .attq .qbox { border-color: #111; color: transparent; }
+.hero .attq.on { background: rgba(255, 255, 255, .6); border-color: #222; }
+.hero .attq.on .qbox { background: var(--hl); border-color: #111; color: var(--pen); box-shadow: none; }
+.hero .attq.on .qlab { color: var(--ink); }
+.hero .attq:focus-visible { outline-color: var(--pen); }
+
+/* 칸: 색 채움 없이 펜 테두리 */
+.panel, .jcard, .card, .ibstrip, .remember, .card-link {
+  background: rgba(255, 255, 255, .55); border: 1.4px solid #222; border-radius: 14px 18px 13px 17px; box-shadow: none;
+}
+.ex { background: transparent; box-shadow: none; }
+.ex.main { background: var(--hl); box-shadow: inset 0 0 0 1.5px var(--pen); }
+.ex.cardio { background: var(--hl-soft); }
+.head h2 { display: inline-block; background: var(--lav); border-radius: 10px; padding: 0 10px; }
+.head .more, .more { text-decoration: underline; text-decoration-color: var(--pen); text-decoration-thickness: 2px; text-underline-offset: 4px; }
+.jchart [class*="jc-la"] rect, .jchart [class*="jc-la"] path { fill: var(--hl); stroke: var(--pen); stroke-width: 1.5; }
+.jchart [class*="jc-la"] text { fill: #111; }
+
+/* ---------------- 운동 탭 위 전환칸: 루틴 ↔ 복습지 (2026-11-17) */
+.wsw { display: grid; grid-template-columns: 1fr 1fr; gap: 0; border: 1.5px solid #111; border-radius: 14px 18px 13px 17px; overflow: hidden; background: rgba(255, 255, 255, .7); }
+.wsw a { position: relative; display: flex; align-items: center; justify-content: center; min-height: 46px; text-decoration: none; font-size: 17px; font-weight: 700; color: var(--faint); }
+.wsw a + a { border-left: 1.5px solid #111; }
+.wsw a[aria-selected="true"] { color: var(--ink); background: var(--hl); }
+.wsw a.new::after { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--pen); margin-left: 6px; align-self: flex-start; margin-top: 10px; }
+.wsw a:focus-visible { outline: 3px solid var(--pen); outline-offset: -3px; }
+
+/* ---------------- 종목 체크 (2026-11-17) */
+.ex-top > div { flex: 1; min-width: 0; }
+.exck {
+  flex: none; margin-left: auto; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 4px;
+  background: none; border: 0; cursor: pointer; color: var(--ink); -webkit-tap-highlight-color: transparent;
+}
+.exck .ckbox { width: 40px; height: 40px; border: 2px solid #111; border-radius: 11px 13px 10px 12px; display: grid; place-items: center; background: #fff; color: transparent; transition: background .15s; }
+.exck .ckbox svg { width: 26px; height: 26px; }
+.exck small { font-size: 12px; font-weight: 700; line-height: 1.1; }
+.exck[aria-pressed="true"] .ckbox { background: var(--hl); color: var(--pen); }
+.exck:focus-visible { outline: 3px solid var(--pen); outline-offset: 2px; border-radius: 12px; }
+.ex.done h3 { text-decoration: line-through; text-decoration-color: var(--pen); text-decoration-thickness: 2px; }
+.ex.done .ex-ic, .ex.done .sets, .ex.done .tip, .ex.done .meta { opacity: .45; }
+.ckbar { position: relative; overflow: hidden; display: flex; align-items: baseline; gap: 10px; margin: 12px 0; padding: 8px 14px; border: 1.4px solid #222; border-radius: 14px 18px 13px 17px; background: rgba(255, 255, 255, .7); }
+.ckbar b { position: relative; z-index: 1; font-size: 19px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ckbar span { position: relative; z-index: 1; font-size: 14px; color: var(--sub); }
+.ckbar i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--hl); transition: width .25s; }
+.ckbar.all span { color: var(--ink); font-weight: 700; }
+.mini li.done { text-decoration: line-through; text-decoration-color: var(--pen); color: var(--faint); }
+@media (prefers-reduced-motion: reduce) { .ckbar i, .exck .ckbox { transition: none; } }

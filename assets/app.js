@@ -130,8 +130,7 @@
     ["home", "홈", '<path d="M3.5 10.5 12 4l8.5 6.5V20a1 1 0 0 1-1 1H15v-6H9v6H4.5a1 1 0 0 1-1-1z" stroke-linejoin="round"/>'],
     ["goal", "목표", '<path d="M5 21V4" stroke-linecap="round"/><path d="M5 4.5h12.5l-2.5 4 2.5 4H5" stroke-linejoin="round"/>'],
     ["body", "몸변화", '<path d="M4 18l5-5.5 4 3L20 8" stroke-linecap="round" stroke-linejoin="round"/><path d="M15.5 8H20v4.5" stroke-linecap="round" stroke-linejoin="round"/>'],
-    ["routine", "루틴", '<path d="M6.5 8v8M17.5 8v8M3.5 10v4M20.5 10v4M6.5 12h11" stroke-linecap="round"/>'],
-    ["forms", "복습지", '<rect x="3" y="5" width="18" height="14" rx="3"/><path d="m10 9 5 3-5 3z" fill="currentColor"/>'],
+    ["routine", "운동", '<path d="M6.5 8v8M17.5 8v8M3.5 10v4M20.5 10v4M6.5 12h11" stroke-linecap="round"/>'],
     ["diet", "식단", '<circle cx="13" cy="13" r="6.5"/><path d="M4 4v6M6.5 4v6M4 7h2.5M5.2 10v10" stroke-linecap="round"/>'],
     ["notice", "공지", '<path d="M4 10v4h3l6 4V6L7 10z" stroke-linejoin="round"/><path d="M16.5 9.5a3.5 3.5 0 0 1 0 5M19 7a7 7 0 0 1 0 10" stroke-linecap="round"/>']
   ];
@@ -575,15 +574,20 @@
       b.addEventListener("click", function () { attToast("선생님 보기에서는 출석을 바꿀 수 없어요"); });
       return;
     }
-    b.addEventListener("click", function () {
+    b.addEventListener("click", function () { attSet(); });
+  }
+  /* 오늘 출석 켜기/끄기 — want 를 안 주면 뒤집기. 종목 체크(exCheck)에서도 attSet(true) 로 씀 (2026-11-17) */
+  function attSet(want) {
+    {
       var a = attLoad().slice(), now = new Date(), key = ymd(now), i = a.indexOf(key), turnOn = i < 0;
+      if (want !== undefined && !!want !== turnOn) return false;
       var tm = pad2(now.getHours()) + ":" + pad2(now.getMinutes()), prevTm = attTimes[key];
       if (turnOn) { a.push(key); attTimes[key] = tm; } else { a.splice(i, 1); delete attTimes[key]; }
       attSave(a);
       attRefresh();
       var nb = document.getElementById("attBtn");
       if (nb && turnOn) nb.classList.add("pop");
-      if (!ATT_API) return;
+      if (!ATT_API) return true;
       if (nb) nb.classList.add("saving");
       attCall("&a=" + (turnOn ? "check" : "uncheck") + "&d=" + key + "&t=" + encodeURIComponent(tm) + "&n=" + encodeURIComponent(M._real || M.name))
         .then(function () { attRefresh(); badgeCheck(); })
@@ -594,7 +598,8 @@
           attSave(cur); attRefresh();
           attToast("인터넷 연결을 확인하고 다시 눌러주세요");
         });
-    });
+      return true;
+    }
   }
 
   var calMonth = null;   /* 달력에 보이는 달 (1일) */
@@ -1411,9 +1416,10 @@
   }
 
   /* ---------------- 홈 */
-  function exMini(d) {
+  function exMini(d, k) {
+    var dn = k ? doneList(k) : [];
     return '<ul class="mini">' + d.items.map(function (it, i) {
-      return '<li><span class="mini-ic' + (it.tag === "메인" ? " main" : "") + '">' + img(iconOf(it), "", true) + '<span class="n">' + (i + 1) + '</span></span>' + esc(it.name) +
+      return '<li' + (dn.indexOf(doneId(it, i)) >= 0 ? ' class="done"' : '') + '><span class="mini-ic' + (it.tag === "메인" ? " main" : "") + '">' + img(iconOf(it), "", true) + '<span class="n">' + (i + 1) + '</span></span>' + esc(it.name) +
         (it.tag ? ' ' + tagChip(it.tag) : '') + '</li>';
     }).join("") + '</ul>';
   }
@@ -1445,7 +1451,7 @@
         '<a class="btn fill" href="#routine-' + k + '" style="align-self:flex-start">부위 고르러 가기</a></div>';
     } else {
       h += '<div class="panel today"><div class="today-top"><div class="today-ic">' + img(iconOf(mainItem(d))) + '<span>' + (ROT ? k.slice(1) : d.day) + '</span></div><div><small>' + esc(d.en.toUpperCase()) + '</small><h3>' + esc(d.part) + ' 하는 날</h3></div></div>' +
-        exMini(d) + (d.cardio && M.routine.cardio ? '<p style="margin:0;font-size:13.5px;color:var(--sub)">+ 마무리 유산소 ' + M.routine.cardio.minutes + '분</p>' : '') +
+        exMini(d, k) + (d.cardio && M.routine.cardio ? '<p style="margin:0;font-size:13.5px;color:var(--sub)">+ 마무리 유산소 ' + M.routine.cardio.minutes + '분</p>' : '') +
         '<a class="btn fill" href="#routine-' + k + '" style="align-self:flex-start">오늘 운동 보기</a>' +
         (ROT ? '<p class="rot-hint">출석 체크한 날을 세서 다음 순서를 알려줘요. 순서가 다르면 루틴 탭에서 그날 DAY를 눌러요</p>' : '') + '</div>';
     }
@@ -1560,10 +1566,20 @@
     var sg = litSigs();
     if (sg[curTab] && sg[curTab].length) lsAdd(LIT_KEY, sg[curTab]);
     var seen = lsArr(LIT_KEY);
-    Object.keys(sg).forEach(function (t) {
-      var a = document.querySelector('.tabs a[data-tab="' + t + '"]');
-      if (a) a.classList.toggle("lit", sg[t].some(function (k) { return seen.indexOf(k) < 0; }));
+    function un(t) { return sg[t].some(function (k) { return seen.indexOf(k) < 0; }); }
+    /* 2026-11-17 루틴·복습지를 '운동' 탭 하나로 합침 → 둘 중 하나라도 새 것이면 운동 탭이 켜지고, 위 전환칸의 그쪽에 점 */
+    var w = document.querySelector('.tabs a[data-tab="routine"]');
+    if (w) w.classList.toggle("lit", un("routine") || un("forms"));
+    var dt = document.querySelector('.tabs a[data-tab="diet"]');
+    if (dt) dt.classList.toggle("lit", un("diet"));
+    Array.prototype.forEach.call(document.querySelectorAll(".wsw a[data-sw]"), function (a) {
+      a.classList.toggle("new", un(a.getAttribute("data-sw")));
     });
+  }
+  /* 운동 탭 위 전환칸: 루틴 ↔ 복습지 (2026-11-17) */
+  function workSwitch(cur) {
+    function one(k, t) { return '<a href="#' + k + '" data-sw="' + k + '" role="tab" aria-selected="' + (k === cur) + '">' + t + '</a>'; }
+    return '<div class="wsw" role="tablist" aria-label="운동">' + one("routine", "루틴") + one("forms", "복습지") + '</div>';
   }
 
   function formCard(f) {
@@ -1571,7 +1587,7 @@
       '<div><span class="tagc">' + esc(f.part) + '</span>' + (formNew(f) ? '<span class="fnew">NEW</span>' : '') + '<h3>' + esc(f.exercise) + '</h3><p>' + esc(f.exercise_en) + ' · ' + esc(f.date) + '</p></div></a>';
   }
   function renderForms() {
-    var h = '<section>' + head("", "자세 복습지", "수업에서 배운 자세를 영상으로 다시 봐요");
+    var h = workSwitch("forms") + '<section>' + head("", "자세 복습지", "수업에서 배운 자세를 영상으로 다시 봐요");
     h += M.forms.length ? '<div class="flist">' + M.forms.map(formCard).join("") + '</div>' :
       '<div class="panel empty"><h3>아직 복습지가 없어요</h3><p>수업에서 배운 자세가 여기에 쌓여요</p></div>';
     return h + '</section>' + remember();
@@ -1670,14 +1686,58 @@
   }
 
   /* ---------------- 루틴 */
+  /* ---------------- 종목 체크 (2026-11-17 트레이너 "한 종목 끝날 때마다 체크, 종목 체크해도 출석 자동")
+     개인 운동할 때 루틴 카드 오른쪽 네모를 누르면 완료 표시. 하나라도 체크하면 오늘 출석이 자동으로 켜짐(체크를 풀어도 출석은 그대로).
+     기록은 그 휴대폰에만(localStorage ptnote:<주소>:done = { d:"오늘 날짜", k:{ 요일키:[종목 id] } }) — 날짜가 바뀌면 비워짐. 고치는 중·선생님 보기·안내서 데모에선 못 누름 */
+  var DONE_KEY = "ptnote:" + SLUG + ":done", doneMem = null;
+  function doneLoad() {
+    var o = null, t = ymd(new Date());
+    try { o = JSON.parse(localStorage.getItem(DONE_KEY) || "null"); } catch (e) {}
+    if (!o) o = doneMem;
+    if (!o || o.d !== t || !o.k) o = { d: t, k: {} };
+    return (doneMem = o);
+  }
+  function doneList(k) { return doneLoad().k[k] || []; }
+  function doneId(it, i) { return i + "|" + it.name; }
+  function ckBtn(id, dn) {
+    var on = dn.indexOf(id) >= 0;
+    return '<button type="button" class="exck" data-ck="' + esc(id) + '" aria-pressed="' + on + '" aria-label="이 종목 ' + (on ? '완료, 누르면 취소' : '끝났으면 체크') + '">' +
+      '<span class="ckbox" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5.5 12.5l4.2 4.2 8.8-9.4" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><small>' + (on ? '완료' : '체크') + '</small></button>';
+  }
+  function ckBar(k, total) {
+    var n = Math.min(total, doneList(k).length), all = total > 0 && n >= total;
+    return '<div class="ckbar' + (all ? ' all' : '') + '" id="ckbar" data-day="' + esc(k) + '" data-total="' + total + '"><b>' + n + ' / ' + total + '</b><span>' +
+      (all ? '오늘 운동 끝! 수고했어요' : n ? '종목 완료 · 출석도 체크됐어요' : '끝낸 종목을 체크해요 · 출석도 자동으로 돼요') + '</span><i style="width:' + (total ? Math.round(n / total * 100) : 0) + '%"></i></div>';
+  }
+  var exCkOn = false;
+  function setupExCheck() {   /* 화면을 다시 그려도 한 번만 걸리게 view 에 맡김 */
+    if (exCkOn) return; exCkOn = true;
+    view.addEventListener("click", function (e) {
+      var b = e.target && e.target.closest ? e.target.closest(".exck") : null;
+      if (!b) return;
+      if (COACH_MODE || DEMO) { attToast("선생님 보기에서는 체크할 수 없어요"); return; }
+      var bar = document.getElementById("ckbar"), k = bar ? bar.getAttribute("data-day") : (view.getAttribute("data-day") || todayKey());
+      var o = doneLoad(), a = o.k[k] || [], id = b.getAttribute("data-ck"), i = a.indexOf(id), on = i < 0;
+      if (on) a.push(id); else a.splice(i, 1);
+      o.k[k] = a; doneMem = o;
+      try { localStorage.setItem(DONE_KEY, JSON.stringify(o)); } catch (err) {}
+      var card = b.closest(".ex");
+      if (card) card.classList.toggle("done", on);
+      b.outerHTML = ckBtn(id, a);
+      if (bar) bar.outerHTML = ckBar(k, +bar.getAttribute("data-total"));
+      if (on && attSet(true)) attToast("출석도 같이 체크했어요");
+    });
+  }
+
   function renderRoutine(sel) {
     var R = M.routine;
-    if (!R) return (CAN_EDIT ? '<div class="rtbar"><div><b>선생님만 보여요</b><span>여기서 바로 루틴을 만들 수 있어요</span></div><div class="rtbar-b"><button type="button" class="rtb" data-rt="createcopy">다른 회원 루틴 복사</button><button type="button" class="rtb fill" data-rt="create">✎ 새 루틴 만들기</button></div></div>' : '') +
+    if (!R) return workSwitch("routine") + (CAN_EDIT ? '<div class="rtbar"><div><b>선생님만 보여요</b><span>여기서 바로 루틴을 만들 수 있어요</span></div><div class="rtbar-b"><button type="button" class="rtb" data-rt="createcopy">다른 회원 루틴 복사</button><button type="button" class="rtb fill" data-rt="create">✎ 새 루틴 만들기</button></div></div>' : '') +
       '<section>' + head("", "주간 루틴", "") + '<div class="panel empty"><h3>루틴이 아직 없어요</h3><p>선생님이 곧 올려드릴게요</p></div></section>' + remember();
     var tk = todayKey(), ED = !!RT_EDIT;
     sel = sel || tk;
     view.setAttribute("data-day", sel);
-    var h = rtTopBar() + '<div class="hero"><div class="hero-main split"><div class="hero-l">' +
+    var CK = !ED, dn = CK ? doneList(sel) : [];
+    var h = workSwitch("routine") + rtTopBar() + '<div class="hero"><div class="hero-main split"><div class="hero-l">' +
       '<div class="eyebrow">' + (ROT ? 'ROTATION ROUTINE <b>· 순환 루틴 ' : 'WEEKLY ROUTINE <b>· 주간 루틴 ') + esc(R.version) + '</b></div><h1>' + esc(R.title) + '</h1>' +
       '<div class="who"><strong>' + esc(M.name) + ' 회원님</strong><span>' + esc(R.updated) + ' 업데이트</span></div></div>' +
       '<div class="hero-r"><div class="eyebrow">이번 주 계획</div><ul class="dots small">' +
@@ -1709,8 +1769,8 @@
       h += '<div class="rest-card"><b>쉬는 날</b>푹 쉬고 잘 먹기! 근육은 쉬는 동안 자라요</div>';
       if (ED && !ROT) h += '<button type="button" class="rtadd" data-rt="work">+ 이날 운동 넣기</button>';
     } else if (d.cardio_only) {
-      h += '<div class="ex-list"><div class="ex cardio"><div class="ex-top"><span class="ex-ic">' + img("treadmill") + '</span><div><h3>유산소만 ' + d.cardio_only + '분</h3>' +
-        '<div class="tip">' + esc(R.cardio ? R.cardio.options : "") + '</div></div></div></div></div>' +
+      h += (CK ? ckBar(sel, 1) : '') + '<div class="ex-list"><div class="ex cardio' + (dn.indexOf("cardio") >= 0 ? ' done' : '') + '"><div class="ex-top"><span class="ex-ic">' + img("treadmill") + '</span><div><h3>유산소만 ' + d.cardio_only + '분</h3>' +
+        '<div class="tip">' + esc(R.cardio ? R.cardio.options : "") + '</div></div>' + (CK ? ckBtn("cardio", dn) : '') + '</div></div></div>' +
         '<p class="note">' + esc(d.note || "웨이트 없이 유산소만 하는 날이에요") + '</p>';
     } else if (d.pick) {
       h += '<p class="note" style="margin:0 0 12px">' + esc(d.note || "이번 주에 아쉬웠던 부위 하나를 골라 그 요일 루틴 그대로 해요") + '</p>' + pickList(d) +
@@ -1719,23 +1779,24 @@
       h += '<div class="flow"><div>' + img("foam_roller", "fl-ic") + '<small>STEP 01</small><b>스트레칭</b><i>폼롤러 10분</i></div><span>›</span>' +
         '<div>' + img("dumbbell", "fl-ic") + '<small>STEP 02</small><b>웨이트</b><i>' + d.items.length + '종목</i></div><span>›</span>' +
         '<div>' + img("treadmill", "fl-ic") + '<small>STEP 03</small><b>유산소</b><i>' + (d.cardio && R.cardio ? R.cardio.minutes + '분' : '이날은 없음') + '</i></div></div>';
+      if (CK) h += ckBar(sel, d.items.length + (d.cardio && R.cardio ? 1 : 0));
       h += '<div class="ex-list">' + d.items.map(function (it, i) {
-        var main = it.tag === "메인";
+        var main = it.tag === "메인", cid = doneId(it, i);
         var sets = it.sets.map(function (s, j) {
           var reps = typeof s[0] === "string" ? esc(s[0]) : s[0] + '<i>회</i>';   /* "30초" 같은 글자도 됨 */
           var kg = s[1] == null ? '맨몸' : s[1] + 'kg';                              /* null = 맨몸 */
           return '<div class="set"><small>' + (j + 1) + '세트</small><b>' + reps + '</b><i>' + kg + '</i></div>';
         }).join("");
-        return '<div class="ex' + (main ? ' main' : '') + '"><div class="ex-top"><span class="ex-ic">' + img(iconOf(it)) + '<span class="ex-no">' + (i + 1) + '</span>' +
+        return '<div class="ex' + (main ? ' main' : '') + (dn.indexOf(cid) >= 0 ? ' done' : '') + '"><div class="ex-top"><span class="ex-ic">' + img(iconOf(it)) + '<span class="ex-no">' + (i + 1) + '</span>' +
           (main ? '<span class="main-badge">메인</span>' : '') + '</span><div>' +
           '<h3>' + esc(it.name) + '</h3><div class="meta">' + esc(it.en) + ' ' + tagChip(it.tag) + '</div>' +
-          '<div class="tip">' + esc(it.tip) + '</div></div></div><div class="sets">' + sets + '</div>' +
+          '<div class="tip">' + esc(it.tip) + '</div></div>' + (CK ? ckBtn(cid, dn) : '') + '</div><div class="sets">' + sets + '</div>' +
           (itemForm(it) ? '<a class="formlink" href="#form-' + esc(itemForm(it).id) + '">▶ 자세 복습지 보기</a>' : '') + (ED ? rtItemCtl(i, d.items.length) : '') + '</div>';
       }).join("");
       if (ED) h += '<button type="button" class="rtadd" data-rt="add">+ 종목 추가</button>';
       if (d.cardio && R.cardio) {
-        h += '<div class="ex cardio"><div class="ex-top"><span class="ex-ic">' + img("treadmill") + '</span><div><h3>마무리 유산소 ' + R.cardio.minutes + '분</h3>' +
-          '<div class="tip">' + esc(R.cardio.options) + '</div></div></div></div>';
+        h += '<div class="ex cardio' + (dn.indexOf("cardio") >= 0 ? ' done' : '') + '"><div class="ex-top"><span class="ex-ic">' + img("treadmill") + '</span><div><h3>마무리 유산소 ' + R.cardio.minutes + '분</h3>' +
+          '<div class="tip">' + esc(R.cardio.options) + '</div></div>' + (CK ? ckBtn("cardio", dn) : '') + '</div></div>';
       }
       h += '</div>' + (R.note ? '<p class="note">' + esc(R.note) + '</p>' : '');
     }
@@ -2428,12 +2489,12 @@
     view.innerHTML = html + rtSaveBar();
     view.setAttribute("data-tab", tab);
     Array.prototype.forEach.call(document.querySelectorAll(".tabs a"), function (a) {
-      if (a.getAttribute("data-tab") === tab) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current");
+      if (a.getAttribute("data-tab") === (tab === "forms" ? "routine" : tab)) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current");   /* 복습지도 '운동' 탭 */
     });
     alignText(document);
     if (/^form-/.test(hsh) && !DEMO) lsAdd(FOPEN_KEY, [hsh.slice(5)]);
     litApply(tab);
-    setupAttCheck(); setupCal(); setupIb(); setupBadges(); setupMuscle(); setupRtEdit();
+    setupAttCheck(); setupCal(); setupIb(); setupBadges(); setupMuscle(); setupRtEdit(); setupExCheck();
     if (after) after();
     var flashEl = null;
     if (tab === "notice") {
