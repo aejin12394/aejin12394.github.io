@@ -9,10 +9,10 @@
 - 테마: **남자 회원 = 초록(#1F6442) / 여자 회원 = 노랑(#B28B0A, 흰 글씨가 읽히도록 깊은 노랑)**. 포인트 색은 노랑(#E0B31E).
   아래 설명에 나오는 '네이비'는 지금 초록, '핑크'는 지금 노랑으로 읽을 것. 색은 style.css·app.js·exicons.js·선생님 페이지·안내서·아이콘 PNG까지 한꺼번에 바꿔 둠.
 - [x] 1 선생님 정보 (연락처는 아직 못 받음 — 안내서 ✎ 에서 폰으로 넣거나 받아서 채우기. 가격표는 키트 그대로, 선생님이 나중에 수정 예정)
-- [ ] 2 GitHub 저장소 `aejin12394.github.io` 만들어 올리기 + Pages 켜기  ← **여기부터 이어서**
+- [x] 2 GitHub 저장소 `aejin12394.github.io` 만들어 올리기 + Pages 켜기 (2026-11-17 완료, 사이트 열림 확인)
   - [x] site.js(trainer·site) 채움, 주소 전부 aejin12394.github.io 로 바꿈
   - [x] 선생님 페이지 폴더 = `coach-5gb96f/` (전체 반영됨)
-- [ ] 3 출석 창고(Apps Script) 배포 → 웹 앱 URL을 assets/site.js att_api 에
+- [ ] 3 출석 창고(Apps Script) 배포  ← **여기부터 이어서** → 웹 앱 URL을 assets/site.js att_api 에
   - [x] 열쇠 만들고 지문을 _tools/attendance_apps_script.gs RT_KEY_HASH 에 넣음 (열쇠는 선생님께 대화로 전달함 — 잃어버렸으면 make_key.py로 새로 만들고 지문 교체 후 재배포)
 - [ ] 4 선생님 폰 연결
 - [x] 5 테마
