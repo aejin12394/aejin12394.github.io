@@ -14,7 +14,7 @@
   - [x] 선생님 페이지 폴더 = `coach-5gb96f/` (전체 반영됨)
 - [x] 3 출석 창고(Apps Script) 배포 (2026-11-17: 시트 "PT노트 출석", 프로젝트 "PT노트 출석 창고", Drive API 추가, 웹 앱 v1) → 웹 앱 URL을 assets/site.js att_api 에
   - [x] 열쇠 만들고 지문을 _tools/attendance_apps_script.gs RT_KEY_HASH 에 넣음 (열쇠는 선생님께 대화로 전달함 — 잃어버렸으면 make_key.py로 새로 만들고 지문 교체 후 재배포)
-- 바로가기(홈 화면) 아이콘 (2026-11-17 선생님 "짐토스 빼고 내 테마로"): 예전 'G' 대신 초록 바탕 + 흰 **PT** + 노랑 띠(회원 노트 = NOTE / 선생님 페이지 = COACH). `python3 _tools/make_app_icon.py` → assets/icon.png·icon-coach-*.png. 그림을 바꾸면 html·manifest의 `?v=` 숫자도 올릴 것. 화면 위 막대 logo.png(GYMTOS)는 그대로.
+- 바로가기(홈 화면) 아이콘 (2026-11-17 선생님 "짐토스 빼고 내 테마로" → 같은 날 "내 피티노트 컨셉으로"): **노트 테마** — 흰 모눈종이 + 검정 펜 손글씨 **PT** + 노란 형광펜 + 빨간 밑줄 + 연보라 형광펜 위 손글씨 이름표(회원 노트 = NOTE / 선생님 페이지 = COACH). 글씨는 폰트가 아니라 펜 획을 직접 그림. `python3 _tools/make_app_icon.py` → assets/icon.png·icon-coach-*.png. 그림을 바꾸면 html·manifest의 `?v=` 숫자도 올릴 것(지금 v=3). 화면 위 막대 logo.png(GYMTOS)는 그대로.
 - [ ] 4 선생님 폰 연결  ← **여기부터 이어서**
 - [x] 5 테마
 - [~] 6 PT 안내서: 이름·경력·자격·프로필 사진(guide/trainer.jpg) 채움. 비포애프터·화면 그림(placeholder.svg)은 아직.
@@ -89,7 +89,7 @@ _tools/anatomy_v3.py  인체모형 v3 (자극 부위 그림). build(경로, 앞 
 ## 새 회원 PT 노트 만들기
 0. **PT 시작일을 꼭 받기** (트레이너이 말해줌, "10월"처럼 달만 주면 그 달 15일로). 안 알려주면 물어볼 것. → data.js journey.start
 1. 주소: `m/<이름 로마자>-<랜덤 소문자·숫자 6자>/` (예: jisu-k3x9qa). 추측하기 어렵게.
-2. `m/sample-k7d2qx/index.html` 복사(아이콘 `icon.png?v=2` 줄·site.js·exicons.js·app.js 스크립트 태그 그대로) → 제목·og:title·헤더 문구의 이름, og:image 경로, theme-color(여 #B28B0A) 바꾸기.
+2. `m/sample-k7d2qx/index.html` 복사(아이콘 `icon.png?v=3` 줄·site.js·exicons.js·app.js 스크립트 태그 그대로) → 제목·og:title·헤더 문구의 이름, og:image 경로, theme-color(여 #B28B0A) 바꾸기.
 3. data.js 작성 (아래 형식). sex "F"면 핑크 테마·핑크 아이콘 자동.
 4. og.jpg 생성 (1200×630, 테마색 배경 + 로고 + "MY PT NOTE · 나만의 운동 노트" + "OOO 회원님" + 아래 띠 "GYMTOS 도당점 · 담당 OOO 트레이너").
 5. 위 회원 목록 표에 추가하고, coach-5gb96f/members.js에도 주소 추가.
