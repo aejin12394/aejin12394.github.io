@@ -1243,8 +1243,12 @@ body, button, input, textarea, select { font-family: var(--font); }
 .wg-msg { margin: 0; font-size: 17px; text-align: center; line-height: 1.5; }
 .wg-msg b { text-decoration: underline; text-decoration-color: var(--pen); text-decoration-thickness: 2.5px; text-underline-offset: 4px; }
 .wg-when { margin: -6px 0 0; font-size: 14px; color: var(--sub); text-align: center; }
-.wg-chart svg { width: 100%; height: auto; display: block; }
-.wg-chart text { font-family: var(--font); }
+/* 목표 체중 여정 그래프 (PT 여정과 같은 움직임 .jc-*) */
+.wgj-t { font-size: 11px; fill: var(--sub); font-family: var(--font); font-variant-numeric: tabular-nums; }
+.wgj-goal { font-size: 12px; font-weight: 700; fill: var(--pen); font-family: var(--font); }
+.wgj-dot { opacity: 0; animation: wgjIn .3s ease-out 1s forwards; }
+@keyframes wgjIn { to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .wgj-dot { animation: none; opacity: 1; } }
 .wg-note { margin: 0; font-size: 14px; color: var(--faint); text-align: center; }
 .wg-btns { display: flex; gap: 8px; flex-wrap: wrap; }
 .wg-btns .btn { flex: 1 1 130px; justify-content: center; }

@@ -460,11 +460,13 @@
     var n4 = "03", n5 = "04";   /* 몸 변화 기록은 2026-11-06 '몸변화' 탭(#body)으로, 근육 지도는 2026-11-08 루틴 탭으로 이동 */
     var attSec = '<section id="att">' + head("01", "출석률 · 출석 달력", "얼마나 꾸준히 나왔는지 봐요") + '<div class="panel attcard">' + attGauge() + attCalendar() + '</div></section>';
     h += wgBlock("goal");   /* 목표 체중 (2026-11-18) — 맨 위 */
+    var WGJ = !!wgGoal();   /* 목표 체중 회원: 12개월 그래프 대신 맨 위 '목표 체중까지의 여정' */
     if (!now) {
-      return h + attSec + badgeSection("02") + '<div class="panel empty"><h3>PT 여정 준비 중이에요</h3><p>선생님이 시작일을 넣으면 12개월 여정이 나와요</p></div>' + remember();
+      return h + attSec + badgeSection("02") + (WGJ ? '' : '<div class="panel empty"><h3>PT 여정 준비 중이에요</h3><p>선생님이 시작일을 넣으면 12개월 여정이 나와요</p></div>') + remember();
     }
     h += attSec + badgeSection("02");
-    h += '<section>' + head(n4, BP ? "바프까지 " + JTN + "개월" : "한눈에 보는 12개월", "지금 어디쯤인지 확인해요") + '<div class="panel jpanel' + (BP ? ' bp">' + bpStrip() : '">') + journeyChart(now) + '</div></section>';
+    if (WGJ) n5 = "03";
+    else h += '<section>' + head(n4, BP ? "바프까지 " + JTN + "개월" : "한눈에 보는 12개월", "지금 어디쯤인지 확인해요") + '<div class="panel jpanel' + (BP ? ' bp">' + bpStrip() : '">') + journeyChart(now) + '</div></section>';
     h += '<section>' + head(n5, "단계별 목표", BP ? "기초 → 벌크 → 컷팅" : "단계마다 하는 것이 달라요") + '<div class="jlist' + (BP ? ' bp' : '') + '">' +
       JST.map(function (st) { return stageCard(st, now, false); }).join("") + '</div></section>';
     return h + remember();
@@ -985,29 +987,65 @@
     return (M.goal || "") + (g ? (M.goal ? " · " : "") + "목표 " + wgKg(+g.target) + "kg" : "");
   }
   function wgH1() { var g = wgGoal(); return g ? "목표 체중 " + wgKg(+g.target) + "kg" : (M.goal || "나의 목표"); }
-  function wgChart(st) {
-    var s = st.s.slice(-60);
-    if (s.length < 2) return '<p class="wg-note">체중 기록이 2개 이상 쌓이면 여기에 그래프가 나와요</p>';
-    var W = 320, H = 150, L = 12, R = 40, T = 16, B = 22;
-    var d0 = s[0].d, d1 = s[s.length - 1].d, span = Math.max(1, wgDays(d0, d1));
-    var vs = s.map(function (x) { return x.w; }).concat([st.target]);
-    var lo = Math.min.apply(null, vs) - 0.8, hi = Math.max.apply(null, vs) + 0.8;
-    function X(d) { return L + wgDays(d0, d) / span * (W - L - R); }
-    function Y(v) { return T + (hi - v) / (hi - lo) * (H - T - B); }
-    var ty = Y(st.target).toFixed(1);
-    var pts = s.map(function (x) { return X(x.d).toFixed(1) + "," + Y(x.w).toFixed(1); }).join(" ");
-    var dots = s.map(function (x, i) {
-      var last = i === s.length - 1;
-      return '<circle cx="' + X(x.d).toFixed(1) + '" cy="' + Y(x.w).toFixed(1) + '" r="' + (last ? 5.5 : 3) + '" fill="' + (last ? "var(--hl)" : "#111") + '"' + (last ? ' stroke="var(--pen)" stroke-width="2.2"' : '') + '/>';
-    }).join("");
-    var lx = X(d1), ly = Y(s[s.length - 1].w);
-    return '<div class="wg-chart"><svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="체중 흐름 그래프">' +
-      '<line x1="' + L + '" x2="' + (W - R + 4) + '" y1="' + ty + '" y2="' + ty + '" stroke="var(--pen)" stroke-width="2" stroke-dasharray="6 5"/>' +
-      '<text x="' + (W - R + 7) + '" y="' + (+ty + 5) + '" font-size="13" fill="var(--pen)">목표</text>' +
-      '<polyline points="' + pts + '" fill="none" stroke="#111" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>' + dots +
-      '<text x="' + Math.min(lx, W - R - 4).toFixed(1) + '" y="' + Math.max(12, ly - 10).toFixed(1) + '" font-size="14" text-anchor="middle" fill="#111">' + ibFmt(s[s.length - 1].w) + '</text>' +
-      '<text x="' + L + '" y="' + (H - 4) + '" font-size="12" fill="#555">' + ibDate(d0) + '</text>' +
-      '<text x="' + (W - R) + '" y="' + (H - 4) + '" font-size="12" fill="#555" text-anchor="end">' + ibDate(d1) + '</text></svg></div>';
+  /* 목표 체중으로 다가가는 PT 여정 그래프 (2026-11-18 선생님 "나의 PT 여정을 목표 체중으로 다가가는 그래프로")
+     가로 = PT 시작일(없으면 목표 정한 날·첫 기록) → 목표 날짜(없으면 시작 + 12개월), 세로 = 체중.
+     실선 = 시작 체중 → 기록한 체중들(지금까지 온 길), 점선 = 지금 → 목표(깃발)로 흐름. 움직임은 PT 여정과 같은 .jc-* */
+  function wgDateAdd(s, months) { var p = s.split("-"), d = new Date(+p[0], +p[1] - 1 + months, +p[2]); return ymd(d); }
+  function wgEase(q) { return 1 - Math.pow(1 - q, 1.7); }   /* 처음엔 잘 빠지고 목표 가까이선 천천히 */
+  function wgJourney(st) {
+    var g = st.g, today = ymd(new Date());
+    var c = [];
+    if (M.journey && /^\d{4}-\d{2}-\d{2}$/.test(M.journey.start || "")) c.push(M.journey.start);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(g.set || "")) c.push(g.set);
+    if (st.s.length) c.push(st.s[0].d);
+    var t0 = c.length ? c.sort()[0] : today;
+    var hasBy = !!(g.by && g.by > t0), tEnd = hasBy ? g.by : wgDateAdd(t0, 12);
+    var cur = st.cur, tNow = cur ? cur.d : (today < tEnd ? today : tEnd);
+    if (tNow > tEnd) tEnd = tNow;
+    var start = st.start !== null ? st.start : (cur ? cur.w : st.target), target = st.target, wNow = cur ? cur.w : start;
+    var span = Math.max(1, wgDays(t0, tEnd));
+    var ws = st.s.filter(function (r) { return r.d >= t0; }).map(function (r) { return r.w; }).concat([start, target]);
+    var lo = Math.min.apply(null, ws), hi = Math.max.apply(null, ws), pad = Math.max(0.8, (hi - lo) * 0.12);
+    lo -= pad; hi += pad;
+    var XL = 30, XR = 290, YT = 40, YB = 150;
+    function X(d) { return XL + Math.max(0, Math.min(1, wgDays(t0, d) / span)) * (XR - XL); }
+    function Y(w) { return YT + (hi - w) / (hi - lo) * (YB - YT); }
+    function curve(xa, wa, xb, wb) {
+      var out = [];
+      for (var i = 0; i <= 28; i++) { var q = i / 28; out.push((xa + (xb - xa) * q).toFixed(1) + "," + Y(wa + (wb - wa) * wgEase(q)).toFixed(1)); }
+      return out.join(" ");
+    }
+    var x0 = X(t0), xE = X(tEnd), xN = X(tNow), yN = Y(wNow), yT = Y(target);
+    var svg = '<line x1="' + XL + '" y1="' + (YB + 12) + '" x2="' + XR + '" y2="' + (YB + 12) + '" stroke="var(--rule)" stroke-width="1.5"/>' +
+      '<line x1="' + XL + '" x2="' + xE.toFixed(1) + '" y1="' + yT.toFixed(1) + '" y2="' + yT.toFixed(1) + '" stroke="var(--pen)" stroke-width="1.5" stroke-dasharray="2 5" opacity=".5"/>' +
+      '<polyline points="' + curve(x0, start, xE, target) + '" fill="none" stroke="var(--primary)" stroke-width="2.5" stroke-dasharray="5 5" opacity=".13"/>';
+    /* 지금까지 온 길 */
+    var path = [[x0, Y(start)]];
+    st.s.forEach(function (r) { if (r.d >= t0) path.push([X(r.d), Y(r.w)]); });
+    if (path.length > 1) {
+      svg += '<polyline class="jc-done" pathLength="1" points="' + path.map(function (q) { return q[0].toFixed(1) + "," + q[1].toFixed(1); }).join(" ") +
+        '" fill="none" stroke="var(--primary)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>';
+      svg += path.slice(1, -1).map(function (q) { return '<circle class="wgj-dot" cx="' + q[0].toFixed(1) + '" cy="' + q[1].toFixed(1) + '" r="2.6" fill="var(--primary)"/>'; }).join("");
+    }
+    svg += '<circle cx="' + x0.toFixed(1) + '" cy="' + Y(start).toFixed(1) + '" r="3.2" fill="#fff" stroke="var(--primary)" stroke-width="2"/>';
+    if (xN - x0 > 56 || path.length < 2) svg += '<text x="' + (x0 - 2).toFixed(1) + '" y="' + (Y(start) - 9).toFixed(1) + '" class="wgj-t">' + wgKg(start) + 'kg</text>';
+    /* 앞으로 갈 길 → 깃발 */
+    if (!st.done && xE - xN > 4) svg += '<polyline class="jc-ahead" points="' + curve(xN, wNow, xE, target) + '" fill="none" stroke="var(--primary)" stroke-width="2.5" stroke-dasharray="5 5"/>';
+    svg += '<g transform="translate(' + xE.toFixed(1) + ',' + (yT - 2).toFixed(1) + ')"><line x1="0" y1="0" x2="0" y2="-20" stroke="var(--pen)" stroke-width="2"/><path class="jc-wave" d="M0 -20 L13 -15.5 L0 -11 Z" fill="var(--pen)"/></g>' +
+      '<text x="' + (xE + 4).toFixed(1) + '" y="' + Math.max(12, yT - 27).toFixed(1) + '" text-anchor="middle" class="wgj-goal">목표 ' + wgKg(target) + 'kg</text>';
+    /* 지금 여기 */
+    var lab = (st.done ? "목표 달성! · " : "지금 여기") + (cur ? (st.done ? "" : " · ") + ibFmt(cur.w) + "kg" : "");
+    var LW = Math.max(64, 14 + lab.length * 8.6), right = xN > (XL + XR) / 2 + 30, below = yN < YT + 30;
+    var ly = below ? yN + 26 : yN - 18;
+    svg += '<circle class="jc-sonar" cx="' + xN.toFixed(1) + '" cy="' + yN.toFixed(1) + '" r="7" fill="none" stroke="var(--key)" stroke-width="2"/>' +
+      '<g class="jc-pop"><circle cx="' + xN.toFixed(1) + '" cy="' + yN.toFixed(1) + '" r="11" fill="var(--key)" opacity=".2"/><circle cx="' + xN.toFixed(1) + '" cy="' + yN.toFixed(1) + '" r="6.5" fill="var(--key)" stroke="#fff" stroke-width="2.5"/></g>' +
+      '<g transform="translate(' + (right ? xN - 6 : xN + 6).toFixed(1) + ',' + ly.toFixed(1) + ')"><g class="jc-lab' + (right ? ' r' : '') + '"><rect x="' + (right ? -LW : 0).toFixed(1) + '" y="-15" width="' + LW.toFixed(1) + '" height="22" rx="11" fill="var(--key)"/>' +
+      '<text x="' + (right ? -LW / 2 : LW / 2).toFixed(1) + '" y="0.5" text-anchor="middle" class="jc-mk">' + esc(lab) + '</text></g></g>';
+    /* 아래 눈금 */
+    svg += '<text x="' + XL + '" y="' + (YB + 27) + '" class="jc-x">시작 ' + ibDate(t0) + '</text>' +
+      '<text x="' + XR + '" y="' + (YB + 27) + '" text-anchor="end" class="jc-x">' + (hasBy ? '목표일 ' + ibDate(tEnd) : '12개월') + '</text>';
+    return '<div class="jchart wgj"><svg viewBox="0 0 340 184" role="img" aria-label="목표 체중 여정 그래프: 시작 ' + wgKg(start) + 'kg' + (cur ? ', 지금 ' + ibFmt(cur.w) + 'kg' : '') + ', 목표 ' + wgKg(target) + 'kg">' + svg + '</svg>' +
+      '<p class="jc-cap">' + (st.s.length ? '실선은 지금까지 온 길, 점선은 목표 체중까지 갈 길이에요. 체중을 기록할수록 선이 이어져요.' : '체중을 기록하면 지금까지 온 길이 선으로 이어져요.') + '</p></div>';
   }
   function wgHist(st) {
     if (!st.s.length) return "";
@@ -1019,7 +1057,7 @@
     }).join("");
     return '<details class="wg-hist"><summary>체중 기록 ' + st.s.length + '개 보기</summary><ul>' + li + '</ul></details>';
   }
-  function wgCard(full) {
+  function wgCard(full) {   /* full = 목표 탭 (막대·기록 목록까지) */
     var st = wgState();
     if (!st) return "";
     var msg;
@@ -1034,15 +1072,14 @@
     }
     var btns = DEMO ? "" : '<div class="wg-btns"><button type="button" class="btn fill wg-add">체중 기록하기</button>' +
       (CAN_EDIT ? '<button type="button" class="btn wg-edit">✎ 목표 체중</button>' : '') + '</div>';
-    return '<div class="panel wgcard">' +
+    return '<div class="panel jpanel wgcard">' + wgJourney(st) +
       '<div class="wg-nums"><div><small>시작</small><b>' + (st.start !== null ? wgKg(st.start) + '<em>kg</em>' : '–') + '</b></div>' +
       '<span class="wg-ar" aria-hidden="true">→</span>' +
       '<div class="now"><small>지금</small><b>' + (st.cur ? ibFmt(st.cur.w) + '<em>kg</em>' : '?') + '</b>' + (st.cur ? '<i>' + ibDate(st.cur.d) + '</i>' : '') + '</div>' +
       '<span class="wg-ar" aria-hidden="true">→</span>' +
       '<div class="goal"><small>목표</small><b>' + wgKg(st.target) + '<em>kg</em></b></div></div>' +
-      '<div class="wg-bar" role="img" aria-label="목표까지 ' + st.pct + '% 왔어요"><i style="width:' + st.pct + '%"></i><span>' + st.pct + '%</span></div>' +
-      '<p class="wg-msg">' + msg + '</p>' + when +
-      (full ? wgChart(st) : '') + btns + (full ? wgHist(st) : '') + '</div>';
+      (full ? '<div class="wg-bar" role="img" aria-label="목표까지 ' + st.pct + '% 왔어요"><i style="width:' + st.pct + '%"></i><span>' + st.pct + '%</span></div>' : '') +
+      '<p class="wg-msg">' + msg + '</p>' + when + btns + (full ? wgHist(st) : '') + '</div>';
   }
   function wgInner(where) {
     var st = wgState();
@@ -1051,11 +1088,13 @@
       return '<section>' + head("", "목표 체중", "선생님만 보여요") + '<button type="button" class="panel wgset wg-edit"><b>✎ 목표 체중 정하기</b>' +
         '<span>다이어트 회원님은 목표를 몸무게로 — 정하면 회원님 홈·목표 탭에 바로 나와요</span></button></section>';
     }
-    return '<section>' + head("", "나의 목표 체중", st.lose ? "몸무게로 보는 나의 목표" : "늘려 갈 몸무게 목표",
-      where === "home" ? '<a class="more" href="#goal-weight">자세히 →</a>' : '') + wgCard(where !== "home") + '</section>';
+    return '<section>' + (where === "home" ? head("", "나의 PT 여정", "목표 " + wgKg(st.target) + "kg까지 함께 가요", '<a class="more" href="#goal-weight">목표 자세히 →</a>')
+      : head("", "목표 체중까지의 여정", "체중을 기록할수록 선이 이어져요")) + wgCard(where !== "home") + '</section>';
   }
-  function wgBlock(where) { return '<div class="wgwrap" data-wg="' + where + '"' + (where === "goal" ? ' id="weight"' : '') + '>' + wgInner(where) + '</div>'; }
+  function wgBlock(where) { return '<div class="wgwrap" data-wg="' + where + '" data-has="' + (wgGoal() ? 1 : 0) + '"' + (where === "goal" ? ' id="weight"' : '') + '>' + wgInner(where) + '</div>'; }
   function wgRefresh() {
+    var w0 = document.querySelector(".wgwrap");
+    if (w0 && w0.getAttribute("data-has") !== String(wgGoal() ? 1 : 0)) { rerender(); return; }
     Array.prototype.forEach.call(document.querySelectorAll(".wgwrap"), function (w) { w.innerHTML = wgInner(w.getAttribute("data-wg")); });
     Array.prototype.forEach.call(document.querySelectorAll(".wg-en"), function (e) { e.textContent = wgEn(); });
     var h1 = document.querySelector(".wg-h1"); if (h1) h1.textContent = wgH1();
@@ -1688,7 +1727,7 @@
     h += todayForms(d);
     h += wgBlock("home");   /* 목표 체중 (2026-11-18) — 정한 회원만, 선생님 보기에선 정하기 버튼 */
     h += reportHomeCard();
-    h += journeyHome();
+    if (!wgGoal()) h += journeyHome();   /* 목표 체중을 정한 회원은 위 '나의 PT 여정'(목표 체중 그래프)으로 바뀜 */
     if (IB_ON) h += ibHomeStrip() || '<span class="ibstrip-slot"></span>';
 
     if (M.next_class) {
