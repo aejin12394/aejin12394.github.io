@@ -104,7 +104,7 @@ _tools/anatomy_v3.py  인체모형 v3 (자극 부위 그림). build(경로, 앞 
 ## 새 회원 PT 노트 만들기
 0. **PT 시작일을 꼭 받기** (트레이너이 말해줌, "10월"처럼 달만 주면 그 달 15일로). 안 알려주면 물어볼 것. → data.js journey.start
 1. 주소: `m/<이름 로마자>-<랜덤 소문자·숫자 6자>/` (예: jisu-k3x9qa). 추측하기 어렵게.
-2. `_tools/member_index_template.html` 복사(아이콘 `icon.png?v=3` 줄·site.js·exicons.js·app.js 스크립트 태그 그대로) → 제목·og:title·헤더 문구의 이름, og:image 경로, theme-color(여 #B28B0A) 바꾸기.
+2. `_tools/member_index_template.html` 복사(아이콘 `icon.png?v=3` 줄·앱 설치 `m/app.webmanifest` 줄·site.js·exicons.js·app.js 스크립트 태그 그대로) → 제목·og:title·헤더 문구의 이름, og:image 경로, theme-color(여 #B28B0A) 바꾸기.
 3. data.js 작성 (아래 형식). sex "F"면 핑크 테마·핑크 아이콘 자동.
 4. og.jpg 생성 (1200×630, 테마색 배경 + 로고 + "MY PT NOTE · 나만의 운동 노트" + "OOO 회원님" + 아래 띠 "GYMTOS 도당점 · 담당 OOO 트레이너").
 5. 위 회원 목록 표에 추가하고, coach-5gb96f/members.js에도 주소 추가.
@@ -284,6 +284,11 @@ _tools/anatomy_v3.py  인체모형 v3 (자극 부위 그림). build(경로, 앞 
 ## 운동 탭 = 루틴 + 복습지 (2026-11-17 트레이너 "루틴이랑 복습지 합쳐서 운동 카테고리로, 상단에 전환칸")
 - 아래 탭: 홈·목표·몸변화·**운동**·식단·공지 (복습지 탭 없어짐). 운동 탭 맨 위 전환칸(.wsw) 루틴 ↔ 복습지. 주소는 그대로 #routine · #routine-mon · #forms · #form-<id> (예전 링크·선생님 페이지 바로가기 다 됨).
 - 점등: 루틴이나 복습지 중 하나라도 새 것이면 운동 탭이 켜지고, 전환칸의 그쪽에 빨간 점. 코드 app.js workSwitch·litApply.
+
+## 회원 노트 앱 설치 (2026-11-18 선생님 "설치 및 바로가기에서 '이 앱을 설치할 수 없습니다' → 다운로드되게")
+- 회원 노트(404.html·`_tools/member_index_template.html` 껍데기)에 `<link rel="manifest" href="/m/app.webmanifest">` — 안드로이드 크롬 "설치"(앱처럼 따로 열림)가 됨.
+- `m/app.webmanifest` = 모든 회원이 같이 쓰는 파일 하나: 이름 "PT 노트"/"PT노트", scope /m/, standalone, 흰색, 아이콘 assets/icon-192.png·icon-512.png(`_tools/make_app_icon.py` NOTE). **start_url 을 일부러 안 적음** → 크롬·아이폰 둘 다 '지금 연 회원 주소'를 앱 시작 주소로 씀(크롬 id도 회원 주소라 회원마다 다른 앱). start_url 을 넣으면 모든 회원이 같은 주소로 열리니 넣지 말 것.
+- 아이콘을 바꾸면 manifest의 `?v=` 도 올릴 것. 선생님 앱은 따로 `coach-5gb96f/manifest.webmanifest`.
 
 ## 홈 순서 (2026-11-17 트레이너 "홈에 오늘의 운동 루틴·오늘의 자세 복습지부터")
 - 회원 홈: 이름·출석 상자 → **오늘의 운동** → **오늘의 자세 복습지** → 월간 리포트 카드(1~7일) → 나의 PT 여정 → 인바디 띠 → 다음 수업 → 선생님 공지.

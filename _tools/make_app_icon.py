@@ -161,5 +161,7 @@ def make(path, size, label):
 
 if __name__ == "__main__":
     make(os.path.join(ROOT, "icon.png"), 180, "NOTE")
+    for s in (192, 512):   # 회원 노트 앱 설치용 (m/app.webmanifest, 2026-11-18)
+        make(os.path.join(ROOT, "icon-%d.png" % s), s, "NOTE")
     for s in (180, 192, 512):
         make(os.path.join(ROOT, "icon-coach-%d.png" % s), s, "COACH")
