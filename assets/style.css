@@ -1308,3 +1308,23 @@ body, button, input, textarea, select { font-family: var(--font); }
 .ml-cmt small { display: block; color: var(--pen); font-weight: 700; font-size: 12px; }
 .ml-del { align-self: flex-start; color: var(--pen) !important; }
 .ml-del.arm { background: var(--pen) !important; color: #fff !important; border-color: var(--pen) !important; }
+
+/* 식단 탭 '나의 체중' (2026-11-18) */
+.mw-panel { padding: 14px 16px; }
+.mw-top { display: flex; align-items: center; gap: 12px; justify-content: space-between; flex-wrap: wrap; }
+.mw-now { display: flex; flex-direction: column; gap: 2px; }
+.mw-kg { font-size: 30px; line-height: 1.1; }
+.mw-kg em { font-style: normal; font-size: 16px; margin-left: 2px; }
+.mw-now small { color: #666; font-size: 13px; }
+.mw-diff { font-size: 13px; font-weight: 700; }
+.mw-diff.dn { color: #1F7A3F; }
+.mw-diff.up { color: #C0392B; }
+.mw-top .wg-add { flex: 0 0 auto; }
+.mw-goal { margin: 10px 0 0; font-size: 14px; }
+.mw-goal a { margin-left: 4px; }
+.mw-chips { list-style: none; display: flex; gap: 6px; margin: 12px 0 0; padding: 0; overflow-x: auto; }
+.mw-chips li { flex: 0 0 auto; min-width: 52px; text-align: center; border: 1.5px solid currentColor; border-radius: 10px; padding: 4px 6px; display: flex; flex-direction: column; }
+.mw-chips li:first-child { background: rgba(255, 230, 80, .55); }
+.mw-chips small { font-size: 11px; opacity: .7; }
+.mw-chips b { font-size: 15px; }
+.mw-tip { margin: 10px 0 0; font-size: 12px; opacity: .7; }

@@ -1099,6 +1099,7 @@
     Array.prototype.forEach.call(document.querySelectorAll(".wgwrap"), function (w) { w.innerHTML = wgInner(w.getAttribute("data-wg")); });
     Array.prototype.forEach.call(document.querySelectorAll(".wg-en"), function (e) { e.textContent = wgEn(); });
     var h1 = document.querySelector(".wg-h1"); if (h1) h1.textContent = wgH1();
+    if (document.querySelector(".mlwrap")) mlRefresh();
     setupWg();
     alignText(document);
   }
@@ -1248,7 +1249,8 @@
       return '<section>' + head("", "식단 기록", "선생님만 보여요") + '<button type="button" class="panel mlset ml-tog" data-on="1"><b>✎ 음식 사진 칸 켜기</b>' +
         '<span>다이어트 회원님이 먹은 음식을 사진으로 올리고, 선생님이 한마디를 남길 수 있어요</span></button></section>';
     }
-    var h = '<section id="meals">' + head("", "나의 식단 기록", "먹은 음식을 사진으로 남겨요 · 선생님이 봐요");
+    var wsec = '<section id="weightlog">' + head("", "나의 체중", "매일 같은 시간에 재서 올려요") + mlWeight() + '</section>';
+    var h = wsec + '<section id="meals">' + head("", "나의 식단 기록", "먹은 음식을 사진으로 남겨요 · 선생님이 봐요");
     if (mlReady === false) return h + '<div class="panel empty"><h3>곧 열려요</h3><p>먹은 음식 사진을 올리는 칸을 준비 중이에요</p></div>' + mlCoachBar(true) + '</section>';
     if (!mlData && !mlErr) return h + '<div class="panel ml-panel"><p class="ml-stat">기록을 불러오는 중이에요…</p></div></section>';
     var list = mlData || [], today = ymd(new Date()), by = {}, days = [];
@@ -1268,9 +1270,33 @@
       '<p class="ml-stat">최근 7일 중 <b>' + wkDays + '일</b> 기록 · 사진 ' + wkN + '장</p>' +
       (mlErr ? '<p class="ml-stat">지금은 기록을 못 불러왔어요. 인터넷 연결을 확인해 주세요</p>' : '') + body + more + '</div>' + mlCoachBar(true) + '</section>';
   }
+  /* 식단 탭 '나의 체중' (2026-11-18 선생님 "체중 올리는 칸도") — 식단 기록이 켜진 회원. 저장은 목표 체중과 같은 mw:<주소>:wlog (wgAddSheet) */
+  function mlWeight() {
+    var s = wgSeries(), cur = s.length ? s[s.length - 1] : null, prev = s.length > 1 ? s[s.length - 2] : null, today = ymd(new Date());
+    var g = wgGoal(), diff = "";
+    if (cur && prev) {
+      var dv = wgR(cur.w - prev.w);
+      diff = '<span class="mw-diff ' + (dv < 0 ? "dn" : dv > 0 ? "up" : "") + '">' + (dv === 0 ? "지난번과 같아요" : "지난번보다 " + (dv > 0 ? "+" : "−") + ibFmt(Math.abs(dv)) + "kg") + '</span>';
+    }
+    var now = cur ? '<b class="mw-kg">' + ibFmt(cur.w) + '<em>kg</em></b><small>' + (cur.d === today ? "오늘" : ibDate(cur.d)) + (cur.ib ? " · 인바디" : "") + '</small>' + diff
+      : '<b class="mw-kg">?</b><small>아직 기록이 없어요</small>';
+    var chips = s.slice(-7).reverse().map(function (x) { return '<li><small>' + (+x.d.slice(5, 7)) + "/" + (+x.d.slice(8)) + '</small><b>' + ibFmt(x.w) + '</b></li>'; }).join("");
+    var mine = {}; wgLog().forEach(function (x) { mine[x[0]] = 1; });
+    var li = s.slice().reverse().slice(0, 40).map(function (x) {
+      return '<li><span>' + x.d.replace(/-/g, ". ") + '</span><b>' + ibFmt(x.w) + 'kg</b>' +
+        (x.ib ? '<span class="wg-tag">인바디</span>' : mine[x.d] ? '<button type="button" class="wg-del" data-d="' + x.d + '">삭제</button>' : '') + '</li>';
+    }).join("");
+    return '<div class="panel mw-panel"><div class="mw-top"><div class="mw-now">' + now + '</div>' +
+      '<button type="button" class="btn fill wg-add">' + (cur && cur.d === today ? "체중 다시 올리기" : "+ 오늘 체중 올리기") + '</button></div>' +
+      (g ? '<p class="mw-goal">목표 ' + wgKg(+g.target) + 'kg' + (cur ? ' · 남은 ' + ibFmt(wgR(Math.abs(cur.w - g.target))) + 'kg' : '') + ' <a href="#goal-weight">여정 보기 →</a></p>' : '') +
+      (s.length > 1 ? '<ul class="mw-chips">' + chips + '</ul>' : '') +
+      (s.length ? '<details class="wg-hist"><summary>체중 기록 ' + s.length + '개 보기</summary><ul>' + li + '</ul></details>' : '') +
+      '<p class="mw-tip">아침 공복 · 화장실 다녀온 뒤 재면 가장 정확해요</p></div>';
+  }
   function mlRefresh() {
     Array.prototype.forEach.call(document.querySelectorAll(".mlwrap"), function (w) { w.innerHTML = mlInner(); });
     setupMl();
+    setupWg();
     alignText(document);
   }
   function mlShrink(file, max, q) {   /* 사진을 긴 변 max px JPEG(품질 q)로 줄여 base64 (글자만) */

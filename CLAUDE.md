@@ -305,6 +305,7 @@ _tools/anatomy_v3.py  인체모형 v3 (자극 부위 그림). build(경로, 앞 
 - 켜지는 회원: 창고 저장소 `pub:m:<주소>:meallog` — true 켬 / false 끔(선생님 보기 식단 탭의 "음식 사진 칸 켜기·끄기", 선생님 열쇠). **값이 없으면 자동**: 목표 문구에 다이어트·감량·체중·체지방(살 빼)이 있거나 목표 체중이 '빼기'인 회원. 그룹 PT·PT 안내서 보기(DEMO)에선 안 보임(손님에게 회원 음식 사진이 안 보이게).
 - 선생님 보기: 사진을 누르면 "선생님 한마디" 칸 → 저장(열쇠) → 회원 화면 사진에 '한마디' 꼬리표 + 크게 볼 때 "김애진 트레이너 한마디".
 - 저장(창고 코드 바뀜 → **재배포 필요**): POST `meal_add` {m, n, d, slot, memo, img(원본 1280px), th(작은 사진 240px)} → 원본은 구글 드라이브 "PT노트 식단 사진" 폴더, 작은 사진·끼니·메모·한마디는 시트 "식단사진" 탭 / GET `a=meal`(최근 35일) · `a=meal_img&id=` · `a=meal_del&id=` / POST `meal_cmt` {m, key, id, c}. 창고가 옛 버전이면 회원 화면에 "곧 열려요".
+- **나의 체중** (2026-11-18 선생님 "체중 올리는 칸도"): 식단 기록이 켜진 회원은 식단 탭 맨 위(#weightlog)에 최근 체중·지난번보다 ±·최근 7개·기록 목록(삭제 두 번) + "오늘 체중 올리기". 목표 체중이 없어도 됨. 저장은 목표 체중과 같은 `mw:<주소>:wlog`(wgAddSheet) → 목표 체중 그래프에도 그대로 이어짐. 코드 app.js mlWeight.
 - 코드 app.js mlOn·mlInner·mlAddSheet·mlView·mlToggle·setupMl·mlSync(식단 탭 열 때), renderDiet = mlwrap + renderDietPlan, style.css "식단 사진 기록" 블록, _tools/attendance_apps_script.gs mlSheet_·mlList_·meal_* .
 
 ## 회원 노트 앱 설치 (2026-11-18 선생님 "설치 및 바로가기에서 '이 앱을 설치할 수 없습니다' → 다운로드되게")
