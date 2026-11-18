@@ -1156,6 +1156,7 @@
       if (!(sv >= 20 && sv <= 300)) return "시작 체중을 확인해 주세요 (예 68)";
       if (!(tv >= 20 && tv <= 300)) return "목표 체중을 확인해 주세요 (예 60)";
       if (wgR(sv) === wgR(tv)) return "시작과 목표 체중이 같아요";
+      if (by && by <= ymd(new Date())) return "목표 날짜가 이미 지난 날이에요 — 연도를 확인해 주세요";
       var v = { start: wgR(sv), target: wgR(tv), set: ymd(new Date()) };
       if (by) v.by = by;
       save(sh, v, "목표 체중을 정했어요 · 회원님 노트에 바로 나와요");
