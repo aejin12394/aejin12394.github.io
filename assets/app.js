@@ -937,10 +937,11 @@
   var WG_K = "pub:m:" + SLUG + ":wgoal", WL_K = "mw:" + SLUG + ":wlog";
   function kvKeep() { try { localStorage.setItem(KV_LS, JSON.stringify(KV)); } catch (e) {} }
   function kvServer(o) {   /* 출석 창고 GET 응답의 kv (pub:all:* + pub:m:<회원>:* + mw:<회원>:*) */
-    var before = JSON.stringify([KV[WG_K], KV[WL_K]]);
+    var before = JSON.stringify([KV[WG_K], KV[WL_K]]), mlBefore = mlOn();
     KV = o && typeof o === "object" ? o : {};
     kvKeep();
     if (JSON.stringify([KV[WG_K], KV[WL_K]]) !== before) wgRefresh();
+    if (mlOn() !== mlBefore) { mlRefresh(); mlSync(); }   /* 식단 사진 칸을 선생님이 켜고 끔 (2026-11-18) */
   }
   function wgGoal() {
     var g = KV[WG_K] || M.weight_goal || null;
@@ -1189,6 +1190,210 @@
         }).catch(function () { b.disabled = false; b.classList.remove("arm"); b.textContent = "삭제"; attToast(rtNetMsg()); });
       });
     });
+  }
+
+  /* ---------------- 식단 사진 기록 (2026-11-18 선생님 "구혜주·박윤지·박세연님 다이어트 목적이라 식단칸에 먹은 음식 사진 올리게")
+     켜지는 회원: 저장소 pub:m:<주소>:meallog — true = 켬, false = 끔(선생님 보기에서 버튼으로). 값이 없으면 자동:
+       목표 문구에 다이어트·감량·체중·체지방이 있거나, 목표 체중이 '빼기'인 회원. 그룹 PT·PT 안내서 보기(DEMO)에선 안 보임.
+     식단 탭 맨 위 '나의 식단 기록': "+ 먹은 음식 올리기"(사진·끼니·날짜·메모) → 날짜별 사진(최근 14일, 더 보기 35일) → 누르면 크게(메모·선생님 한마디·삭제).
+     저장은 출석 창고: POST meal_add(원본 = 구글 드라이브 "PT노트 식단 사진", 작은 사진·끼니·메모 = 시트 "식단사진" 탭)
+       · GET a=meal / a=meal_img / a=meal_del · 선생님 한마디 POST meal_cmt(선생님 열쇠). 창고가 옛 버전이면 "곧 열려요". */
+  var ML_K = "pub:m:" + SLUG + ":meallog", ML_LS = "ptml_" + SLUG, ML_SLOTS = ["아침", "점심", "저녁", "간식"];
+  var mlData = null, mlReady = null, mlErr = false, mlAll = false;
+  try { mlData = JSON.parse(localStorage.getItem(ML_LS) || "null"); } catch (e) {}
+  function mlAuto() {
+    if (/·/.test(M.name || "")) return false;
+    var g = wgGoal();
+    if (g && !(+g.start > 0 && +g.target > +g.start)) return true;
+    return /다이어트|감량|체중|체지방|살\s*빼/.test(M.goal || "");
+  }
+  function mlOn() {
+    if (DEMO) return false;
+    var f = KV[ML_K];
+    return f === true ? true : f === false ? false : mlAuto();
+  }
+  function mlSet(list) {
+    mlData = Array.isArray(list) ? list : []; mlErr = false;
+    var lim = ymd(new Date(Date.now() - 14 * 86400000));
+    try { localStorage.setItem(ML_LS, JSON.stringify(mlData.filter(function (r) { return r.d >= lim; }))); } catch (e) {}
+  }
+  function mlSync() {
+    if (!mlOn() || !ATT_API) return;
+    fetch(ATT_API + "?m=" + encodeURIComponent(SLUG) + "&a=meal", { cache: "no-store" })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        if (!j || !j.ok) throw new Error("ml");
+        if (!("meals" in j)) { mlReady = false; mlRefresh(); return; }   /* 창고가 아직 옛 버전 */
+        mlReady = true; mlSet(j.meals); mlRefresh();
+      })
+      .catch(function () { if (!mlData) { mlErr = true; mlRefresh(); } });
+  }
+  var ML_WD = ["일", "월", "화", "수", "목", "금", "토"];
+  function mlDayLabel(d) {
+    var p = d.split("-"), dt = new Date(+p[0], +p[1] - 1, +p[2]), t = ymd(new Date()), y = ymd(new Date(Date.now() - 86400000));
+    return (d === t ? "오늘 · " : d === y ? "어제 · " : "") + (+p[1]) + ". " + (+p[2]) + " (" + ML_WD[dt.getDay()] + ")";
+  }
+  function mlThumb(r) {
+    return '<button type="button" class="mlt" data-ml="' + esc(r.id) + '"><span class="ph">' + (r.th ? '<img src="data:image/jpeg;base64,' + r.th + '" alt="' + esc(r.slot || "식단") + ' 사진" loading="lazy">' : '') + '</span>' +
+      (r.cmt ? '<i>한마디</i>' : '') + '<b>' + esc(r.slot || "식단") + '</b><small>' + esc(r.memo || "") + '</small></button>';
+  }
+  function mlCoachBar(on) {
+    if (!CAN_EDIT) return "";
+    return '<p class="ml-coach">선생님만 보여요 · 음식 사진 칸 ' + (on ? '켜짐 <button type="button" class="ml-tog" data-on="0">끄기</button>' : '꺼짐 <button type="button" class="ml-tog" data-on="1">켜기</button>') + '</p>';
+  }
+  function mlInner() {
+    if (!mlOn()) {
+      if (!CAN_EDIT || /·/.test(M.name || "")) return "";
+      return '<section>' + head("", "식단 기록", "선생님만 보여요") + '<button type="button" class="panel mlset ml-tog" data-on="1"><b>✎ 음식 사진 칸 켜기</b>' +
+        '<span>다이어트 회원님이 먹은 음식을 사진으로 올리고, 선생님이 한마디를 남길 수 있어요</span></button></section>';
+    }
+    var h = '<section id="meals">' + head("", "나의 식단 기록", "먹은 음식을 사진으로 남겨요 · 선생님이 봐요");
+    if (mlReady === false) return h + '<div class="panel empty"><h3>곧 열려요</h3><p>먹은 음식 사진을 올리는 칸을 준비 중이에요</p></div>' + mlCoachBar(true) + '</section>';
+    if (!mlData && !mlErr) return h + '<div class="panel ml-panel"><p class="ml-stat">기록을 불러오는 중이에요…</p></div></section>';
+    var list = mlData || [], today = ymd(new Date()), by = {}, days = [];
+    list.forEach(function (r) { if (!by[r.d]) { by[r.d] = []; days.push(r.d); } by[r.d].push(r); });
+    if (!by[today]) days.unshift(today);
+    days.sort(function (a, b) { return a < b ? 1 : -1; });
+    var wk = ymd(new Date(Date.now() - 6 * 86400000)), wkDays = 0, wkN = 0;
+    days.forEach(function (d) { if (d >= wk && by[d]) { wkDays++; wkN += by[d].length; } });
+    var lim = ymd(new Date(Date.now() - 13 * 86400000)), shown = mlAll ? days : days.filter(function (d) { return d >= lim; });
+    var body = shown.map(function (d) {
+      var rs = (by[d] || []).slice().sort(function (a, b) { return ML_SLOTS.indexOf(a.slot) - ML_SLOTS.indexOf(b.slot) || a.at - b.at; });
+      return '<div class="ml-day"><h3>' + mlDayLabel(d) + (rs.length ? '<small>' + rs.length + '장</small>' : '') + '</h3><div class="ml-grid">' +
+        rs.map(mlThumb).join("") + (d === today ? '<button type="button" class="mlt add ml-add-one"><span class="ph" aria-hidden="true">+</span><b>' + (rs.length ? '더 올리기' : '오늘 첫 사진') + '</b><small></small></button>' : '') + '</div></div>';
+    }).join("");
+    var more = !mlAll && days.length > shown.length ? '<button type="button" class="btn ml-more">지난 기록 더 보기</button>' : '';
+    return h + '<div class="panel ml-panel"><button type="button" class="btn fill ml-add">+ 먹은 음식 올리기</button>' +
+      '<p class="ml-stat">최근 7일 중 <b>' + wkDays + '일</b> 기록 · 사진 ' + wkN + '장</p>' +
+      (mlErr ? '<p class="ml-stat">지금은 기록을 못 불러왔어요. 인터넷 연결을 확인해 주세요</p>' : '') + body + more + '</div>' + mlCoachBar(true) + '</section>';
+  }
+  function mlRefresh() {
+    Array.prototype.forEach.call(document.querySelectorAll(".mlwrap"), function (w) { w.innerHTML = mlInner(); });
+    setupMl();
+    alignText(document);
+  }
+  function mlShrink(file, max, q) {   /* 사진을 긴 변 max px JPEG(품질 q)로 줄여 base64 (글자만) */
+    return new Promise(function (res, rej) {
+      var fr = new FileReader();
+      fr.onerror = rej;
+      fr.onload = function () {
+        var im = new Image();
+        im.onerror = rej;
+        im.onload = function () {
+          var s = Math.min(1, max / Math.max(im.width, im.height)), c = document.createElement("canvas");
+          c.width = Math.round(im.width * s); c.height = Math.round(im.height * s);
+          c.getContext("2d").drawImage(im, 0, 0, c.width, c.height);
+          res(c.toDataURL("image/jpeg", q).split(",")[1]);
+        };
+        im.src = fr.result;
+      };
+      fr.readAsDataURL(file);
+    });
+  }
+  function mlGuessSlot() { var h = new Date().getHours(); return h >= 4 && h < 10 ? "아침" : h >= 10 && h < 15 ? "점심" : h >= 17 && h < 22 ? "저녁" : "간식"; }
+  function mlAddSheet() {
+    var today = ymd(new Date()), slot = mlGuessSlot(), img = null, th = null;
+    var body = '<label class="ml-file"><input type="file" id="mlF" accept="image/*"><span class="ml-ph"><b>사진 찍기 · 고르기</b><small>먹기 전에 접시가 다 보이게 찍어요</small></span><img alt="" hidden></label>' +
+      '<div class="rts-l">끼니</div><div class="ml-slots" role="radiogroup" aria-label="끼니">' +
+      ML_SLOTS.map(function (s) { return '<button type="button" role="radio" aria-checked="' + (s === slot) + '" data-s="' + s + '">' + s + '</button>'; }).join("") + '</div>' +
+      '<label>먹은 날<input id="mlD" type="date" value="' + today + '" max="' + today + '"></label>' +
+      '<label>메모 <small>비워도 돼요 · 예: 현미밥 반 공기, 닭가슴살</small><input id="mlM" maxlength="80" autocomplete="off"></label>';
+    var sh = rtSheet("먹은 음식 올리기", body, function (sh) {
+      if (!img) return "사진을 먼저 골라 주세요";
+      var d = fv(sh, "mlD");
+      if (!d) return "먹은 날을 골라 주세요";
+      if (!ATT_API) return "저장할 곳이 아직 준비 안 됐어요";
+      var ok = sh.querySelector("[data-ok]"); ok.disabled = true; ok.textContent = "올리는 중…"; sh.msg("");
+      fetch(ATT_API, { method: "POST", body: JSON.stringify({ a: "meal_add", m: SLUG, n: M._real || M.name, d: d, slot: slot, memo: fv(sh, "mlM"), img: img, th: th }) })
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          if (!j || !j.ok || !j.meals) { ok.disabled = false; ok.textContent = "올리기"; sh.msg(j && (j.error === "action" || !j.meals) ? "창고(Apps Script)를 새 버전으로 다시 배포해야 올릴 수 있어요" : "못 올렸어요 — 다시 눌러 주세요"); return; }
+          mlReady = true; mlSet(j.meals); sh.close(); mlRefresh(); attToast("식단 사진을 올렸어요");
+        })
+        .catch(function () { ok.disabled = false; ok.textContent = "올리기"; sh.msg(rtNetMsg()); });
+      return true;
+    }, "올리기");
+    var f = sh.querySelector("#mlF"), pv = sh.querySelector(".ml-file img");
+    f.addEventListener("change", function () {
+      var file = f.files && f.files[0];
+      if (!file) return;
+      sh.msg("사진 준비 중…");
+      Promise.all([mlShrink(file, 1280, 0.8), mlShrink(file, 240, 0.6)]).then(function (a) {
+        img = a[0]; th = a[1]; pv.src = "data:image/jpeg;base64," + img; pv.hidden = false;
+        sh.querySelector(".ml-ph").hidden = true; sh.msg("");
+      }).catch(function () { sh.msg("이 사진은 못 읽었어요. 다른 사진으로 해 주세요"); });
+    });
+    Array.prototype.forEach.call(sh.querySelectorAll(".ml-slots button"), function (b) {
+      b.addEventListener("click", function () {
+        slot = b.getAttribute("data-s");
+        Array.prototype.forEach.call(sh.querySelectorAll(".ml-slots button"), function (x) { x.setAttribute("aria-checked", String(x === b)); });
+      });
+    });
+  }
+  function mlFind(id) { var r = null; (mlData || []).forEach(function (x) { if (x.id === id) r = x; }); return r; }
+  function mlView(id) {
+    var r = mlFind(id);
+    if (!r) return;
+    var body = '<div class="ml-view"><img src="data:image/jpeg;base64,' + r.th + '" alt="' + esc(r.slot || "식단") + ' 사진"></div>' +
+      '<p class="ml-meta">' + mlDayLabel(r.d) + ' · ' + esc(r.slot || "식단") + '</p>' + (r.memo ? '<p class="ml-memo">' + esc(r.memo) + '</p>' : '') +
+      (CAN_EDIT ? '<label>선생님 한마디 <small>회원님 노트에 바로 보여요</small><textarea id="mlC" rows="2" maxlength="200">' + esc(r.cmt || "") + '</textarea></label>' +
+        '<label id="sKeyWrap"' + (rtKey() ? ' hidden' : '') + '>선생님 열쇠 <small>처음 한 번만</small><input id="sKey" type="password" autocomplete="off"></label>'
+        : (r.cmt ? '<div class="ml-cmt"><small>' + esc(TRN) + ' 트레이너 한마디</small>' + esc(r.cmt) + '</div>' : '')) +
+      '<button type="button" class="rtb ml-del">사진 지우기</button>';
+    var sh = rtSheet("식단 사진", body, CAN_EDIT ? function (sh) {
+      var key = fv(sh, "sKey") || rtKey();
+      if (!key) { sh.querySelector("#sKeyWrap").hidden = false; return "선생님 열쇠를 넣어 주세요"; }
+      var ok = sh.querySelector("[data-ok]"); ok.disabled = true; ok.textContent = "저장 중…"; sh.msg("");
+      fetch(ATT_API, { method: "POST", body: JSON.stringify({ a: "meal_cmt", m: SLUG, key: key, id: r.id, c: fv(sh, "mlC") }) })
+        .then(function (x) { return x.json(); })
+        .then(function (j) {
+          if (!j || !j.ok || !j.meals) { ok.disabled = false; ok.textContent = "한마디 저장"; rtErr(j && j.ok ? { error: "action" } : j, sh); return; }
+          try { localStorage.setItem("ptkey", key); } catch (e) {}
+          mlSet(j.meals); sh.close(); mlRefresh(); attToast("한마디를 남겼어요");
+        })
+        .catch(function () { ok.disabled = false; ok.textContent = "한마디 저장"; sh.msg(rtNetMsg()); });
+      return true;
+    } : null, CAN_EDIT ? "한마디 저장" : false);
+    if (!CAN_EDIT) { var cx = sh.querySelector(".rts-foot [data-close]"); if (cx) cx.textContent = "닫기"; }
+    /* 원본 사진 받아서 바꿔 끼우기 */
+    fetch(ATT_API + "?m=" + encodeURIComponent(SLUG) + "&a=meal_img&id=" + encodeURIComponent(r.id), { cache: "no-store" })
+      .then(function (x) { return x.json(); })
+      .then(function (j) { var im = sh.querySelector(".ml-view img"); if (j && j.ok && j.data && im) im.src = j.data; })
+      .catch(function () {});
+    var del = sh.querySelector(".ml-del");
+    del.addEventListener("click", function () {
+      if (!del.classList.contains("arm")) { del.classList.add("arm"); del.textContent = "한 번 더 누르면 지워요"; return; }
+      del.disabled = true; del.textContent = "지우는 중…";
+      fetch(ATT_API + "?m=" + encodeURIComponent(SLUG) + "&a=meal_del&id=" + encodeURIComponent(r.id), { cache: "no-store" })
+        .then(function (x) { return x.json(); })
+        .then(function (j) { if (!j || !j.ok || !j.meals) throw new Error("del"); mlSet(j.meals); sh.close(); mlRefresh(); attToast("사진을 지웠어요"); })
+        .catch(function () { del.disabled = false; del.classList.remove("arm"); del.textContent = "사진 지우기"; sh.msg(rtNetMsg()); });
+    });
+  }
+  function mlToggle(on) {
+    var key = rtKey();
+    var body = '<p class="rts-p">' + (on ? '이 회원님 식단 탭에 "나의 식단 기록"(먹은 음식 사진 올리기) 칸을 켜요.' : '이 회원님 식단 탭에서 음식 사진 칸을 숨겨요. 올린 사진은 그대로 남아요.') + '</p>' +
+      '<label id="sKeyWrap"' + (key ? ' hidden' : '') + '>선생님 열쇠 <small>처음 한 번만</small><input id="sKey" type="password" autocomplete="off"></label>';
+    rtSheet(on ? "음식 사진 칸 켜기" : "음식 사진 칸 끄기", body, function (sh) {
+      var k = fv(sh, "sKey") || rtKey();
+      if (!k) { sh.querySelector("#sKeyWrap").hidden = false; return "선생님 열쇠를 넣어 주세요"; }
+      var ok = sh.querySelector("[data-ok]"); ok.disabled = true; ok.textContent = "저장 중…"; sh.msg("");
+      var it = {}; it[ML_K] = !!on;
+      rtPost({ a: "kv_set", key: k, items: it }).then(function (j) {
+        if (!j || !j.ok) { ok.disabled = false; ok.textContent = on ? "켜기" : "끄기"; rtErr(j, sh); return; }
+        try { localStorage.setItem("ptkey", k); } catch (e) {}
+        KV[ML_K] = !!on; kvKeep(); sh.close(); mlRefresh(); if (on) mlSync();
+        attToast(on ? "음식 사진 칸을 켰어요" : "음식 사진 칸을 껐어요");
+      }).catch(function () { ok.disabled = false; ok.textContent = on ? "켜기" : "끄기"; sh.msg(rtNetMsg()); });
+      return true;
+    }, on ? "켜기" : "끄기");
+  }
+  function setupMl() {
+    function each(sel, fn) { Array.prototype.forEach.call(document.querySelectorAll(sel), function (b) { if (!b._ml) { b._ml = 1; b.addEventListener("click", function () { fn(b); }); } }); }
+    each(".ml-add, .ml-add-one", function () { mlAddSheet(); });
+    each(".mlt[data-ml]", function (b) { mlView(b.getAttribute("data-ml")); });
+    each(".ml-more", function () { mlAll = true; mlRefresh(); });
+    each(".ml-tog", function (b) { mlToggle(b.getAttribute("data-on") === "1"); });
   }
 
   /* 몸변화 탭 (#body) — 2026-11-06 목표 탭에서 따로 뺌 */
@@ -2091,7 +2296,10 @@
     var src = /^ic_/.test(key) ? BASE + "food/" + THEME + "/" + key + ".png" : BASE + "food/" + key + ".png";
     return '<img class="' + (cls || "fd-img") + '" src="' + src + '" alt="" loading="lazy">';
   }
-  function renderDiet() {
+  function renderDiet() {   /* 2026-11-18: 맨 위 '나의 식단 기록'(먹은 음식 사진) + 아래 원래 식단표 */
+    return '<div class="mlwrap">' + mlInner() + '</div>' + renderDietPlan();
+  }
+  function renderDietPlan() {
     var D = M.diet;
     if (!D || typeof D === "string") {
       var h = '<section>' + head("", "식단표", "");
@@ -2766,7 +2974,7 @@
     }
     else if (hsh === "routine") { html = renderRoutine(); tab = "routine"; }
     else if (hsh.indexOf("routine-") === 0 && (DAY_KO[hsh.slice(8)] || isRotKey(hsh.slice(8)))) { html = renderRoutine(hsh.slice(8)); tab = "routine"; scrollDay = true; }
-    else if (hsh === "diet") { html = renderDiet(); tab = "diet"; }
+    else if (hsh === "diet" || hsh === "meals") { html = renderDiet(); tab = "diet"; after = mlSync; if (hsh === "meals") jumpTo = "meals"; }
     else if (hsh === "notice") { html = renderNotice(); tab = "notice"; }
     else if (hsh === "goal" || hsh === "journey") { html = renderGoal(); tab = "goal"; }
     else if (hsh === "goal-badges" || hsh === "badges") { html = renderGoal(); tab = "goal"; jumpTo = "badges"; }
@@ -2785,7 +2993,7 @@
     alignText(document);
     if (/^form-/.test(hsh) && !DEMO) lsAdd(FOPEN_KEY, [hsh.slice(5)]);
     litApply(tab);
-    setupAttCheck(); setupCal(); setupIb(); setupWg(); setupBadges(); setupMuscle(); setupRtEdit(); setupExCheck();
+    setupAttCheck(); setupCal(); setupIb(); setupWg(); setupMl(); setupBadges(); setupMuscle(); setupRtEdit(); setupExCheck();
     if (after) after();
     var flashEl = null;
     if (tab === "notice") {
@@ -2820,6 +3028,6 @@
   }
   attSync(); ibSync();
   if (!ATT_API) setTimeout(badgeCheck, 1500);
-  document.addEventListener("visibilitychange", function () { if (!document.hidden) { attSync(); ibSync(); } });
+  document.addEventListener("visibilitychange", function () { if (!document.hidden) { attSync(); ibSync(); if (view.getAttribute("data-tab") === "diet") mlSync(); } });
   window.addEventListener("load", function () { alignText(document); });
 })();

@@ -300,6 +300,13 @@ _tools/anatomy_v3.py  인체모형 v3 (자극 부위 그림). build(경로, 앞 
 - 지금 체중 = 회원(또는 선생님)이 **"체중 기록하기"**로 넣은 체중(저장소 `mw:<주소>:wlog` [["YYYY-MM-DD", kg], …], 회원 폰도 저장 가능, 최근 150개, 같은 날은 덮어씀) + 몸변화 탭 인바디 기록의 체중을 합친 것 중 가장 최근. 직접 넣은 기록은 목록에서 삭제(두 번), 인바디는 몸변화 탭에서.
 - 창고(Apps Script) 재배포 필요 없음(범용 저장소). 코드 app.js wgState·wgCard·wgInner·wgAddSheet·wgGoalSheet·kvServer(출석 GET 응답 kv를 ptnote:<주소>:kv에 기억), style.css "목표 체중" 블록.
 
+## 식단 사진 기록 (2026-11-18 선생님 "구혜주님·박윤지님·박세연님 다 다이어트 목적이라 식단칸에 먹은 음식 사진 올리게")
+- 식단 탭 맨 위 **'나의 식단 기록'**(아래는 원래 식단표 그대로, 주소 #diet · #meals): "+ 먹은 음식 올리기" → 사진(찍기·고르기) + 끼니(아침·점심·저녁·간식, 시간 보고 자동 선택) + 먹은 날 + 메모(선택) → 올리기. 날짜별 사진 3칸 격자(최근 14일, "지난 기록 더 보기" = 35일), "최근 7일 중 n일 기록 · 사진 n장". 사진을 누르면 크게(원본) + 메모 + 선생님 한마디 + 사진 지우기(두 번).
+- 켜지는 회원: 창고 저장소 `pub:m:<주소>:meallog` — true 켬 / false 끔(선생님 보기 식단 탭의 "음식 사진 칸 켜기·끄기", 선생님 열쇠). **값이 없으면 자동**: 목표 문구에 다이어트·감량·체중·체지방(살 빼)이 있거나 목표 체중이 '빼기'인 회원. 그룹 PT·PT 안내서 보기(DEMO)에선 안 보임(손님에게 회원 음식 사진이 안 보이게).
+- 선생님 보기: 사진을 누르면 "선생님 한마디" 칸 → 저장(열쇠) → 회원 화면 사진에 '한마디' 꼬리표 + 크게 볼 때 "김애진 트레이너 한마디".
+- 저장(창고 코드 바뀜 → **재배포 필요**): POST `meal_add` {m, n, d, slot, memo, img(원본 1280px), th(작은 사진 240px)} → 원본은 구글 드라이브 "PT노트 식단 사진" 폴더, 작은 사진·끼니·메모·한마디는 시트 "식단사진" 탭 / GET `a=meal`(최근 35일) · `a=meal_img&id=` · `a=meal_del&id=` / POST `meal_cmt` {m, key, id, c}. 창고가 옛 버전이면 회원 화면에 "곧 열려요".
+- 코드 app.js mlOn·mlInner·mlAddSheet·mlView·mlToggle·setupMl·mlSync(식단 탭 열 때), renderDiet = mlwrap + renderDietPlan, style.css "식단 사진 기록" 블록, _tools/attendance_apps_script.gs mlSheet_·mlList_·meal_* .
+
 ## 회원 노트 앱 설치 (2026-11-18 선생님 "설치 및 바로가기에서 '이 앱을 설치할 수 없습니다' → 다운로드되게")
 - 회원 노트(404.html·`_tools/member_index_template.html` 껍데기)에 `<link rel="manifest" href="/m/app.webmanifest">` — 안드로이드 크롬 "설치"(앱처럼 따로 열림)가 됨.
 - `m/app.webmanifest` = 모든 회원이 같이 쓰는 파일 하나: 이름 "PT 노트"/"PT노트", scope /m/, standalone, 흰색, 아이콘 assets/icon-192.png·icon-512.png(`_tools/make_app_icon.py` NOTE). **start_url 을 일부러 안 적음** → 크롬·아이폰 둘 다 '지금 연 회원 주소'를 앱 시작 주소로 씀(크롬 id도 회원 주소라 회원마다 다른 앱). start_url 을 넣으면 모든 회원이 같은 주소로 열리니 넣지 말 것.

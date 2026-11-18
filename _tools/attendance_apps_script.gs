@@ -16,6 +16,10 @@ const KV_SHEET = '저장소';
 const RT_KEY_HASH = '370cf0eead41342f5a7696250e0896087fac51bd3cad28fd96955a7772b97e66';
 const IB_SHEET = '인바디';
 const IB_FOLDER = 'PT노트 인바디 사진';
+// 2026-11-18 식단 사진: 회원이 먹은 음식 사진을 올림 → 구글 드라이브 "PT노트 식단 사진" 폴더(원본) + 시트 "식단사진" 탭(작은 사진·끼니·메모·선생님 한마디).
+//   보기 GET a=meal(최근 35일) · a=meal_img&id=(원본) · a=meal_del&id= / 올리기 POST meal_add · 선생님 한마디 POST meal_cmt(선생님 열쇠).
+const ML_SHEET = '식단사진';
+const ML_FOLDER = 'PT노트 식단 사진';
 
 function book_() {
   const act = SpreadsheetApp.getActiveSpreadsheet();
@@ -83,6 +87,44 @@ function ibList_(m) {
 function ibRow_(s, m, id) {
   const v = s.getDataRange().getValues();
   for (let i = 1; i < v.length; i++) if (v[i][0] === m && String(v[i][8]) === id) return { row: i + 1, photo: String(v[i][7] || '') };
+  return null;
+}
+
+/* ---------------- 식단 사진 (2026-11-18) */
+function mlSheet_() {
+  const ss = book_();
+  let s = ss.getSheetByName(ML_SHEET);
+  if (!s) {
+    s = ss.insertSheet(ML_SHEET);
+    s.appendRow(['회원주소', '이름', '날짜', '끼니', '메모', '사진ID', '작은사진', '선생님 한마디', '기록ID', '기록시각']);
+    s.setFrozenRows(1);
+  }
+  return s;
+}
+function mlFolder_() {
+  const p = PropertiesService.getScriptProperties();
+  const id = p.getProperty('MLF');
+  if (id) { try { return DriveApp.getFolderById(id); } catch (e) {} }
+  const f = DriveApp.createFolder(ML_FOLDER);
+  p.setProperty('MLF', f.getId());
+  return f;
+}
+function mlList_(m, days) {
+  const v = mlSheet_().getDataRange().getValues(), out = [];
+  const lim = Utilities.formatDate(new Date(Date.now() - (days || 35) * 86400000), 'Asia/Seoul', 'yyyy-MM-dd');
+  for (let i = 1; i < v.length; i++) {
+    if (v[i][0] !== m) continue;
+    const d = txt_(v[i][2], 'yyyy-MM-dd');
+    if (d < lim) continue;
+    out.push({ id: String(v[i][8]), d: d, slot: String(v[i][3] || ''), memo: String(v[i][4] || ''), th: String(v[i][6] || ''),
+               cmt: String(v[i][7] || ''), at: v[i][9] instanceof Date ? v[i][9].getTime() : 0 });
+  }
+  out.sort(function (a, b) { return a.d < b.d ? 1 : a.d > b.d ? -1 : b.at - a.at; });
+  return out;
+}
+function mlRow_(s, m, id) {
+  const v = s.getDataRange().getValues();
+  for (let i = 1; i < v.length; i++) if (v[i][0] === m && String(v[i][8]) === id) return { row: i + 1, photo: String(v[i][5] || '') };
   return null;
 }
 
@@ -197,6 +239,29 @@ function doGet(e) {
         s.deleteRow(r.row);
       }
       return json_({ ok: true, inbody: ibList_(m) });
+    } finally {
+      lock.releaseLock();
+    }
+  }
+
+  if (p.a === 'meal') return json_({ ok: true, meals: mlList_(m, 35) });
+  if (p.a === 'meal_img') {
+    const r = mlRow_(mlSheet_(), m, String(p.id || ''));
+    if (!r || !r.photo) return json_({ ok: false, error: 'photo' });
+    const blob = DriveApp.getFileById(r.photo).getBlob();
+    return json_({ ok: true, data: 'data:' + blob.getContentType() + ';base64,' + Utilities.base64Encode(blob.getBytes()) });
+  }
+  if (p.a === 'meal_del') {
+    const lock = LockService.getScriptLock();
+    lock.waitLock(10000);
+    try {
+      const s = mlSheet_();
+      const r = mlRow_(s, m, String(p.id || ''));
+      if (r) {
+        if (r.photo) { try { DriveApp.getFileById(r.photo).setTrashed(true); } catch (err) {} }
+        s.deleteRow(r.row);
+      }
+      return json_({ ok: true, meals: mlList_(m, 35) });
     } finally {
       lock.releaseLock();
     }
@@ -330,6 +395,37 @@ function doPost(e) {
       rtSet_(m, String(b.n || ''), rec);
       SpreadsheetApp.flush();
       return json_({ ok: true, routine: rec });
+    } finally {
+      lock.releaseLock();
+    }
+  }
+  if (b.a === 'meal_add') {   // 식단 사진 올리기 (회원 폰) {m, n, d, slot, memo, img(원본 base64), th(작은 사진 base64)}
+    const d = String(b.d || '');
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) return json_({ ok: false, error: 'date' });
+    if (!b.img || String(b.img).length > 8000000) return json_({ ok: false, error: 'img' });
+    const th = String(b.th || '');
+    if (th.length > 45000) return json_({ ok: false, error: 'thumb' });
+    const lock = LockService.getScriptLock();
+    lock.waitLock(20000);
+    try {
+      const blob = Utilities.newBlob(Utilities.base64Decode(String(b.img)), 'image/jpeg', m + '_' + d + '_' + Date.now() + '.jpg');
+      const photo = mlFolder_().createFile(blob).getId();
+      const id = Utilities.getUuid().replace(/-/g, '').slice(0, 10);
+      mlSheet_().appendRow([m, String(b.n || '').slice(0, 40), "'" + d, String(b.slot || '').slice(0, 10), String(b.memo || '').slice(0, 200), photo, th, '', id, new Date()]);
+      return json_({ ok: true, meals: mlList_(m, 35) });
+    } finally {
+      lock.releaseLock();
+    }
+  }
+  if (b.a === 'meal_cmt') {   // 선생님 한마디 (선생님 열쇠) {m, key, id, c}
+    if (!keyOk_(b.key)) return json_({ ok: false, error: 'key' });
+    const lock = LockService.getScriptLock();
+    lock.waitLock(20000);
+    try {
+      const s = mlSheet_(), r = mlRow_(s, m, String(b.id || ''));
+      if (!r) return json_({ ok: false, error: 'id' });
+      s.getRange(r.row, 8).setValue(String(b.c || '').slice(0, 200));
+      return json_({ ok: true, meals: mlList_(m, 35) });
     } finally {
       lock.releaseLock();
     }
