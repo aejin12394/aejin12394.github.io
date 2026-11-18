@@ -104,7 +104,8 @@
       return fetch(API, { method: "POST", body: JSON.stringify({ a: "kv_set", m: COACH, key: key, items: items }) }).then(function (x) { return x.json(); });
     }).then(function (j) {
       if (!j || !j.ok) { var e = new Error((j && j.error) || "save"); throw e; }
-      return { slug: slug, url: (SITE.site || location.origin) + "/m/" + slug + "/" };
+      var res = { slug: slug, url: (SITE.site || location.origin) + "/m/" + slug + "/" };
+      return publish(key).catch(function () {}).then(function () { return res; });   /* 팀장님 PT 노트용 공개 목록도 */
     });
   }
 
@@ -115,8 +116,35 @@
       items["pub:m:" + COACH + ":roster"] = r.filter(function (x) { return x.slug !== slug; });
       items["pub:m:" + slug + ":profile"] = null;
       return fetch(API, { method: "POST", body: JSON.stringify({ a: "kv_set", m: COACH, key: key, items: items }) }).then(function (x) { return x.json(); });
-    }).then(function (j) { if (!j || !j.ok) throw new Error((j && j.error) || "save"); return true; });
+    }).then(function (j) {
+      if (!j || !j.ok) throw new Error((j && j.error) || "save");
+      return publish(key).catch(function () {}).then(function () { return true; });   /* 팀장님 PT 노트용 공개 목록도 */
+    });
   }
 
-  window.PTR = { slugs: slugs, load: load, appRoster: appRoster, fromProfile: fromProfile, create: create, remove: remove, roman: roman };
+  /* 팀장님(박현규) PT 노트용 공개 목록 (2026-11-18 선생님 "팀장님 PT 노트 페이지에서 내가 폰으로 만든 회원도 보이게")
+     창고 저장소 pub:m:roster-list:members = [{slug, name, sex, goal, start}] — 앱 회원(창고 명단 + 각 회원 profile) 기준, 명단 순서 그대로.
+     회원 만들기·빼기 뒤 + 선생님 페이지를 열 때마다 맞춤(선생님 열쇠, kv_set). 이미 같으면 다시 쓰지 않음.
+     누구나 읽기: 창고 GET ?m=roster-list → 응답 kv["pub:m:roster-list:members"] (창고 재배포 필요 없음). */
+  var PUB_LIST = "pub:m:roster-list:members";
+  function post(body) { return fetch(API, { method: "POST", body: JSON.stringify(body) }).then(function (x) { return x.json(); }); }
+  function publish(key) {
+    if (!API || !COACH || !key) return Promise.resolve(false);
+    return post({ a: "kv_get", m: COACH, key: key, prefix: "pub:m:" }).then(function (j) {
+      if (!j || !j.ok || !j.kv) throw new Error((j && j.error) || "get");
+      var kv = j.kv, r = kv["pub:m:" + COACH + ":roster"];
+      var list = (Array.isArray(r) ? r : []).filter(function (x) { return x && /^[a-z0-9-]{3,40}$/.test(x.slug); }).map(function (x) {
+        var pf = kv["pub:m:" + x.slug + ":profile"] || {};
+        return { slug: x.slug, name: String(pf.name || x.name || ""), sex: (pf.sex || x.sex) === "F" ? "F" : "M", goal: String(pf.goal || ""), start: String(pf.start || "") };
+      });
+      if (JSON.stringify(kv[PUB_LIST]) === JSON.stringify(list)) return true;
+      var items = {}; items[PUB_LIST] = list;
+      return post({ a: "kv_set", m: COACH, key: key, items: items }).then(function (k) {
+        if (!k || !k.ok) throw new Error((k && k.error) || "save");
+        return true;
+      });
+    });
+  }
+
+  window.PTR = { slugs: slugs, load: load, appRoster: appRoster, fromProfile: fromProfile, create: create, remove: remove, roman: roman, publish: publish };
 })();

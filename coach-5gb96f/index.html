@@ -647,6 +647,8 @@ section.folded .fsum:not(:empty) { display: inline; }
     window.PTR.remove(b.getAttribute("data-slug"), key).then(function () { bnToast("명단에서 뺐어요"); render(); }, function () { b.disabled = false; b.textContent = "빼기"; bnToast("빼지 못했어요 — 다시 눌러 주세요"); });
   });
   render();
+  /* 팀장님 PT 노트용 공개 목록(pub:m:roster-list:members)을 열 때마다 맞춤 — 열쇠가 있는 선생님 폰에서만 (assets/roster.js PTR.publish) */
+  if (bnKey()) window.PTR.publish(bnKey()).catch(function () {});
   document.getElementById("refresh").addEventListener("click", render);
   document.addEventListener("visibilitychange", function () { if (!document.hidden) render(); });
 })();

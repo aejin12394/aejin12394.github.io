@@ -101,6 +101,12 @@ _tools/anatomy_v3.py  인체모형 v3 (자극 부위 그림). build(경로, 앞 
     - 폰에서 만든 루틴이 있으면(창고 GET 응답 routine, base "") 그 내용을 data.js routine 으로 옮길 것 — 안 그러면 data.js 기준이 달라져 폰 루틴이 꺼짐.
   - Claude가 파일로 만든 회원은 창고 명단에 안 넣음(members.js가 명단).
 
+## 팀장님(박현규) PT 노트용 공개 회원 목록 (2026-11-18 선생님 "팀장님 PT 노트 페이지에서 내가 폰으로 만든 회원도 보이게")
+- 창고 저장소 `pub:m:roster-list:members` = [{slug, name, sex, goal, start}] — 앱 회원(창고 명단 `pub:m:coach-5gb96f:roster` + 각 회원 `profile`) 기준, 명단 순서. 파일 회원(members.js)은 안 들어감.
+- 저장 시점: 선생님 페이지 "+ 새 회원 추가" 뒤 · "명단에서 빼기" 뒤 · 선생님 페이지를 열 때마다(선생님 열쇠 ptkey가 있는 폰만). 내용이 이미 같으면 다시 쓰지 않음. 회원 정보 '고치기' 화면은 아직 없음 — 생기면 저장 뒤 `PTR.publish(key)` 부를 것.
+- 누구나 읽기: 창고 GET `?m=roster-list` → 응답 `kv["pub:m:roster-list:members"]` (열쇠 필요 없음, 창고 재배포 필요 없음).
+- 코드 assets/roster.js `publish`(kv_get prefix "pub:m:" → 목록 만들기 → kv_set) · create/remove 끝에서 부름 · coach-5gb96f/index.html 맨 아래 열 때 부름.
+
 ## 새 회원 PT 노트 만들기
 0. **PT 시작일을 꼭 받기** (트레이너이 말해줌, "10월"처럼 달만 주면 그 달 15일로). 안 알려주면 물어볼 것. → data.js journey.start
 1. 주소: `m/<이름 로마자>-<랜덤 소문자·숫자 6자>/` (예: jisu-k3x9qa). 추측하기 어렵게.
