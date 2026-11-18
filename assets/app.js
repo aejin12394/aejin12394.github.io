@@ -454,11 +454,12 @@
   function renderGoal() {
     var now = journeyNow();
     var h = '<div class="hero"><div class="hero-main"><div class="hero-l"><div class="eyebrow">MY GOAL <b>· 나의 목표</b></div>' +
-      '<h1>' + esc(M.goal || "나의 목표") + '</h1><div class="en">' + esc(M.name) + ' 회원님 · ' + (BP ? '기초 → 벌크 → 컷팅, 바프 촬영까지 함께 가요' : '기초 → 변화 → 자립, 3단계로 함께 가요') + '</div>' +
+      '<h1 class="wg-h1">' + esc(wgH1()) + '</h1><div class="en">' + (wgGoal() && M.goal ? esc(M.goal) + ' · ' : '') + esc(M.name) + ' 회원님 · ' + (BP ? '기초 → 벌크 → 컷팅, 바프 촬영까지 함께 가요' : '기초 → 변화 → 자립, 3단계로 함께 가요') + '</div>' +
       '<div class="who"><strong>' + (now ? (now.month ? now.month + '개월차' : '곧 시작해요') + ' · ' + now.stage.no + '단계 ' + esc(now.stage.short) : '') + '</strong><span>담당 ' + esc(TRN) + ' 트레이너</span></div></div></div>' +
       '<div class="keypoint"><small>KEY POINT</small><p>' + (BP ? '목표는 하나, 바프 촬영날! 그 의지라면 충분해요. 단계마다 함께 넘어가요!' : '혼자 가는 길이 아니에요. 단계마다 함께 넘어가요!') + '</p></div></div>';
     var n4 = "03", n5 = "04";   /* 몸 변화 기록은 2026-11-06 '몸변화' 탭(#body)으로, 근육 지도는 2026-11-08 루틴 탭으로 이동 */
     var attSec = '<section id="att">' + head("01", "출석률 · 출석 달력", "얼마나 꾸준히 나왔는지 봐요") + '<div class="panel attcard">' + attGauge() + attCalendar() + '</div></section>';
+    h += wgBlock("goal");   /* 목표 체중 (2026-11-18) — 맨 위 */
     if (!now) {
       return h + attSec + badgeSection("02") + '<div class="panel empty"><h3>PT 여정 준비 중이에요</h3><p>선생님이 시작일을 넣으면 12개월 여정이 나와요</p></div>' + remember();
     }
@@ -556,7 +557,7 @@
   function attCall(q) {
     return fetch(ATT_API + "?m=" + encodeURIComponent(SLUG) + (q || ""), { cache: "no-store" })
       .then(function (r) { return r.json(); })
-      .then(function (j) { if (!j || !j.ok) throw new Error("save"); attApply(j.days); if ("routine" in j) rtServer(j.routine); if ("bnotices" in j) bnServer(j.bnotices); return j; });
+      .then(function (j) { if (!j || !j.ok) throw new Error("save"); attApply(j.days); if ("routine" in j) rtServer(j.routine); if ("bnotices" in j) bnServer(j.bnotices); if ("kv" in j) kvServer(j.kv); return j; });
   }
   function attSync() {
     if (!ATT_API) return;
@@ -742,7 +743,7 @@
     var tr = document.querySelector(".ibtrend"); if (tr) tr.outerHTML = ibTrend();
     var s = document.querySelector(".ibstrip, .ibstrip-slot");
     if (s) { var h = ibHomeStrip(); s.outerHTML = h || '<span class="ibstrip-slot"></span>'; }
-    alignText(document);
+    wgRefresh();   /* 인바디 체중도 '지금 체중'에 들어감 */
   }
   function ibSet(list) { ibData = list || []; ibErr = false; try { localStorage.setItem(IB_KEY, JSON.stringify(ibData)); } catch (e) {} }
   function ibSync() {
@@ -918,6 +919,235 @@
           .then(function (r) { return r.json(); })
           .then(function (j) { if (!j || !j.ok) throw new Error("del"); ibSet(j.inbody); ibRefresh(); })
           .catch(function () { b.disabled = false; b.classList.remove("arm"); b.textContent = "삭제"; attToast("인터넷 연결을 확인하고 다시 눌러주세요"); });
+      });
+    });
+  }
+
+  /* ---------------- 목표 체중 (2026-11-18 선생님 "구혜주 회원님은 다이어트라 목표를 몸무게로")
+     목표 = 창고 저장소 pub:m:<주소>:wgoal {start, target, by?, set} — 선생님 보기에서 "✎ 목표 체중" (선생님 열쇠)
+            또는 data.js weight_goal {start, target, by?} (Claude가 파일로 만든 회원). 저장소 값이 이김.
+     체중 = 회원 폰 "체중 기록" → 저장소 mw:<주소>:wlog [["YYYY-MM-DD", kg], …] (회원 폰도 저장 가능, 최근 150개)
+            + 몸변화 탭 인바디 기록의 체중. 같은 날은 직접 기록이 이김. 창고(Apps Script) 재배포 필요 없음.
+     화면: 홈(오늘의 자세 복습지 다음)·목표 탭 맨 위(#goal-weight). 홈 이름 밑·목표 탭 제목에 "목표 OOkg". */
+  var KV_LS = "ptnote:" + SLUG + ":kv";
+  var KV = {};
+  try { KV = JSON.parse(localStorage.getItem(KV_LS) || "{}") || {}; } catch (e) {}
+  var WG_K = "pub:m:" + SLUG + ":wgoal", WL_K = "mw:" + SLUG + ":wlog";
+  function kvKeep() { try { localStorage.setItem(KV_LS, JSON.stringify(KV)); } catch (e) {} }
+  function kvServer(o) {   /* 출석 창고 GET 응답의 kv (pub:all:* + pub:m:<회원>:* + mw:<회원>:*) */
+    var before = JSON.stringify([KV[WG_K], KV[WL_K]]);
+    KV = o && typeof o === "object" ? o : {};
+    kvKeep();
+    if (JSON.stringify([KV[WG_K], KV[WL_K]]) !== before) wgRefresh();
+  }
+  function wgGoal() {
+    var g = KV[WG_K] || M.weight_goal || null;
+    return g && +g.target > 0 ? g : null;
+  }
+  function wgLog() {
+    var a = KV[WL_K];
+    return Array.isArray(a) ? a.filter(function (x) { return x && /^\d{4}-\d{2}-\d{2}$/.test(x[0]) && +x[1] > 0; }) : [];
+  }
+  function wgSeries() {   /* 날짜순 [{d, w, ib?}] */
+    var map = {};
+    (ibData || []).forEach(function (r) { if (r && r.d && +r.w > 0) map[r.d] = { d: r.d, w: +r.w, ib: 1 }; });
+    wgLog().forEach(function (x) { map[x[0]] = { d: x[0], w: +x[1] }; });
+    return Object.keys(map).sort().map(function (k) { return map[k]; });
+  }
+  function wgDays(a, b) {
+    var p = a.split("-"), q = b.split("-");
+    return Math.round((new Date(+q[0], +q[1] - 1, +q[2]) - new Date(+p[0], +p[1] - 1, +p[2])) / 86400000);
+  }
+  function wgR(n) { return Math.round(n * 10) / 10; }
+  function wgKg(n) { var r = wgR(n); return r % 1 === 0 ? String(r) : ibFmt(r); }   /* 68 · 66.5 (정수는 .0 빼고) */
+  function wgState() {
+    var g = wgGoal();
+    if (!g) return null;
+    var s = wgSeries(), cur = s.length ? s[s.length - 1] : null;
+    var start = +g.start > 0 ? +g.start : (s.length ? s[0].w : null), target = +g.target;
+    var st = { g: g, s: s, cur: cur, start: start, target: target, lose: start === null || target <= start, pct: 0 };
+    if (cur) {
+      st.left = wgR(Math.abs(cur.w - target));
+      st.done = st.lose ? cur.w <= target : cur.w >= target;
+      if (start !== null && start !== target) {
+        st.pct = Math.max(0, Math.min(100, Math.round((start - cur.w) / (start - target) * 100)));
+        st.moved = wgR(st.lose ? start - cur.w : cur.w - start);
+      }
+    }
+    if (g.by && /^\d{4}-\d{2}-\d{2}$/.test(g.by)) {
+      st.dday = wgDays(ymd(new Date()), g.by);
+      if (cur && !st.done && st.dday > 7) st.pace = wgR(st.left / (st.dday / 7));
+    }
+    return st;
+  }
+  function wgEn() {   /* 홈 이름 밑 한 줄 */
+    var g = wgGoal();
+    return (M.goal || "") + (g ? (M.goal ? " · " : "") + "목표 " + wgKg(+g.target) + "kg" : "");
+  }
+  function wgH1() { var g = wgGoal(); return g ? "목표 체중 " + wgKg(+g.target) + "kg" : (M.goal || "나의 목표"); }
+  function wgChart(st) {
+    var s = st.s.slice(-60);
+    if (s.length < 2) return '<p class="wg-note">체중 기록이 2개 이상 쌓이면 여기에 그래프가 나와요</p>';
+    var W = 320, H = 150, L = 12, R = 40, T = 16, B = 22;
+    var d0 = s[0].d, d1 = s[s.length - 1].d, span = Math.max(1, wgDays(d0, d1));
+    var vs = s.map(function (x) { return x.w; }).concat([st.target]);
+    var lo = Math.min.apply(null, vs) - 0.8, hi = Math.max.apply(null, vs) + 0.8;
+    function X(d) { return L + wgDays(d0, d) / span * (W - L - R); }
+    function Y(v) { return T + (hi - v) / (hi - lo) * (H - T - B); }
+    var ty = Y(st.target).toFixed(1);
+    var pts = s.map(function (x) { return X(x.d).toFixed(1) + "," + Y(x.w).toFixed(1); }).join(" ");
+    var dots = s.map(function (x, i) {
+      var last = i === s.length - 1;
+      return '<circle cx="' + X(x.d).toFixed(1) + '" cy="' + Y(x.w).toFixed(1) + '" r="' + (last ? 5.5 : 3) + '" fill="' + (last ? "var(--hl)" : "#111") + '"' + (last ? ' stroke="var(--pen)" stroke-width="2.2"' : '') + '/>';
+    }).join("");
+    var lx = X(d1), ly = Y(s[s.length - 1].w);
+    return '<div class="wg-chart"><svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="체중 흐름 그래프">' +
+      '<line x1="' + L + '" x2="' + (W - R + 4) + '" y1="' + ty + '" y2="' + ty + '" stroke="var(--pen)" stroke-width="2" stroke-dasharray="6 5"/>' +
+      '<text x="' + (W - R + 7) + '" y="' + (+ty + 5) + '" font-size="13" fill="var(--pen)">목표</text>' +
+      '<polyline points="' + pts + '" fill="none" stroke="#111" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>' + dots +
+      '<text x="' + Math.min(lx, W - R - 4).toFixed(1) + '" y="' + Math.max(12, ly - 10).toFixed(1) + '" font-size="14" text-anchor="middle" fill="#111">' + ibFmt(s[s.length - 1].w) + '</text>' +
+      '<text x="' + L + '" y="' + (H - 4) + '" font-size="12" fill="#555">' + ibDate(d0) + '</text>' +
+      '<text x="' + (W - R) + '" y="' + (H - 4) + '" font-size="12" fill="#555" text-anchor="end">' + ibDate(d1) + '</text></svg></div>';
+  }
+  function wgHist(st) {
+    if (!st.s.length) return "";
+    var mine = {};
+    wgLog().forEach(function (x) { mine[x[0]] = 1; });
+    var li = st.s.slice().reverse().slice(0, 40).map(function (x) {
+      return '<li><span>' + x.d.replace(/-/g, ". ") + '</span><b>' + ibFmt(x.w) + 'kg</b>' +
+        (x.ib ? '<span class="wg-tag">인바디</span>' : mine[x.d] && !DEMO ? '<button type="button" class="wg-del" data-d="' + x.d + '">삭제</button>' : '') + '</li>';
+    }).join("");
+    return '<details class="wg-hist"><summary>체중 기록 ' + st.s.length + '개 보기</summary><ul>' + li + '</ul></details>';
+  }
+  function wgCard(full) {
+    var st = wgState();
+    if (!st) return "";
+    var msg;
+    if (!st.cur) msg = "체중을 기록하면 목표까지 얼마나 왔는지 보여 드려요";
+    else if (st.done) msg = "<b>목표 체중 달성!</b> 정말 잘했어요";
+    else if (st.moved > 0) msg = "목표까지 <b>" + ibFmt(st.left) + "kg</b> · 벌써 " + ibFmt(st.moved) + "kg " + (st.lose ? "뺐어요" : "늘었어요");
+    else msg = "목표까지 <b>" + ibFmt(st.left) + "kg</b> · 한 칸씩 같이 가요";
+    var when = "";
+    if (st.dday !== undefined) {
+      when = '<p class="wg-when">목표일 ' + ibDate(st.g.by) + ' · ' + (st.dday > 0 ? "D-" + st.dday : st.dday === 0 ? "D-DAY" : "날짜가 지났어요") +
+        (st.pace ? ' · 주 ' + ibFmt(st.pace) + 'kg씩이면 돼요' : '') + '</p>';
+    }
+    var btns = DEMO ? "" : '<div class="wg-btns"><button type="button" class="btn fill wg-add">체중 기록하기</button>' +
+      (CAN_EDIT ? '<button type="button" class="btn wg-edit">✎ 목표 체중</button>' : '') + '</div>';
+    return '<div class="panel wgcard">' +
+      '<div class="wg-nums"><div><small>시작</small><b>' + (st.start !== null ? wgKg(st.start) + '<em>kg</em>' : '–') + '</b></div>' +
+      '<span class="wg-ar" aria-hidden="true">→</span>' +
+      '<div class="now"><small>지금</small><b>' + (st.cur ? ibFmt(st.cur.w) + '<em>kg</em>' : '?') + '</b>' + (st.cur ? '<i>' + ibDate(st.cur.d) + '</i>' : '') + '</div>' +
+      '<span class="wg-ar" aria-hidden="true">→</span>' +
+      '<div class="goal"><small>목표</small><b>' + wgKg(st.target) + '<em>kg</em></b></div></div>' +
+      '<div class="wg-bar" role="img" aria-label="목표까지 ' + st.pct + '% 왔어요"><i style="width:' + st.pct + '%"></i><span>' + st.pct + '%</span></div>' +
+      '<p class="wg-msg">' + msg + '</p>' + when +
+      (full ? wgChart(st) : '') + btns + (full ? wgHist(st) : '') + '</div>';
+  }
+  function wgInner(where) {
+    var st = wgState();
+    if (!st) {
+      if (!CAN_EDIT) return "";
+      return '<section>' + head("", "목표 체중", "선생님만 보여요") + '<button type="button" class="panel wgset wg-edit"><b>✎ 목표 체중 정하기</b>' +
+        '<span>다이어트 회원님은 목표를 몸무게로 — 정하면 회원님 홈·목표 탭에 바로 나와요</span></button></section>';
+    }
+    return '<section>' + head("", "나의 목표 체중", st.lose ? "몸무게로 보는 나의 목표" : "늘려 갈 몸무게 목표",
+      where === "home" ? '<a class="more" href="#goal-weight">자세히 →</a>' : '') + wgCard(where !== "home") + '</section>';
+  }
+  function wgBlock(where) { return '<div class="wgwrap" data-wg="' + where + '"' + (where === "goal" ? ' id="weight"' : '') + '>' + wgInner(where) + '</div>'; }
+  function wgRefresh() {
+    Array.prototype.forEach.call(document.querySelectorAll(".wgwrap"), function (w) { w.innerHTML = wgInner(w.getAttribute("data-wg")); });
+    Array.prototype.forEach.call(document.querySelectorAll(".wg-en"), function (e) { e.textContent = wgEn(); });
+    var h1 = document.querySelector(".wg-h1"); if (h1) h1.textContent = wgH1();
+    setupWg();
+    alignText(document);
+  }
+  function wgAddSheet() {
+    var st = wgState(), last = st && st.cur ? st.cur.w : st ? st.start : null, today = ymd(new Date());
+    var body = '<label>잰 날<input id="wD" type="date" value="' + today + '" max="' + today + '"></label>' +
+      '<label>체중 <small>kg · 아침 공복, 화장실 다녀온 뒤에 재면 가장 정확해요</small><input id="wW" inputmode="decimal" autocomplete="off" placeholder="' + (last ? ibFmt(last) : "예 62.4") + '"></label>';
+    var sh = rtSheet("체중 기록", body, function (sh) {
+      var d = fv(sh, "wD"), w = Number(fv(sh, "wW").replace(",", "."));
+      if (!d) return "잰 날을 골라 주세요";
+      if (!(w >= 20 && w <= 300)) return "체중을 확인해 주세요 (예 62.4)";
+      if (!ATT_API) return "저장할 곳이 아직 준비 안 됐어요";
+      w = wgR(w);
+      var ok = sh.querySelector("[data-ok]"); ok.disabled = true; ok.textContent = "저장 중…"; sh.msg("");
+      function fail(t) { ok.disabled = false; ok.textContent = "저장"; sh.msg(t); }
+      attCall("").catch(function () { return null; }).then(function () {   /* 다른 폰에서 넣은 기록을 먼저 받고 거기에 더함 */
+        var log = wgLog().filter(function (x) { return x[0] !== d; });
+        log.push([d, w]);
+        log.sort(function (a, b) { return a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0; });
+        while (log.length > 150) log.shift();
+        var it = {}; it[WL_K] = log;
+        return rtPost({ a: "kv_set", items: it }).then(function (j) {
+          if (!j || !j.ok) { fail(j && j.error === "action" ? "창고(Apps Script)를 새 버전으로 다시 배포해야 저장돼요" : "저장이 안 됐어요 — 다시 눌러 주세요"); return; }
+          KV[WL_K] = log; kvKeep(); sh.close(); wgRefresh();
+          var s2 = wgState();
+          attToast(s2 && s2.done ? "목표 체중 달성! 축하해요" : s2 && s2.cur && s2.cur.d === d ? "체중 기록 완료 · 목표까지 " + ibFmt(s2.left) + "kg" : "체중을 기록했어요");
+        });
+      }).catch(function () { fail(rtNetMsg()); });
+      return true;
+    }, "저장");
+    setTimeout(function () { var i = sh.querySelector("#wW"); if (i) i.focus(); }, 60);
+  }
+  function wgGoalSheet() {
+    var g = wgGoal() || {}, st = wgState(), s = wgSeries(), curW = s.length ? s[s.length - 1].w : null;
+    var body = '<p class="rts-p">회원님 노트 홈과 목표 탭 맨 위에 "시작 → 지금 → 목표"와 얼마나 왔는지가 나와요. 지금 체중은 회원님이 기록한 체중(또는 인바디)으로 자동 계산돼요.</p>' +
+      '<label>시작 체중 <small>kg · PT 시작할 때 (모르면 지금 체중)</small><input id="gS" inputmode="decimal" autocomplete="off" value="' + (+g.start > 0 ? ibFmt(+g.start) : curW ? ibFmt(curW) : "") + '"></label>' +
+      '<label>목표 체중 <small>kg</small><input id="gT" inputmode="decimal" autocomplete="off" value="' + (+g.target > 0 ? ibFmt(+g.target) : "") + '"></label>' +
+      '<label>목표 날짜 <small>넣으면 D-day와 "주 몇 kg씩"이 나와요 · 비워도 돼요</small><input id="gB" type="date" value="' + esc(g.by || "") + '"></label>' +
+      '<label id="sKeyWrap"' + (rtKey() ? ' hidden' : '') + '>선생님 열쇠 <small>처음 한 번만</small><input id="sKey" type="password" autocomplete="off"></label>' +
+      (KV[WG_K] ? '<button type="button" class="rtb wg-clear">목표 체중 지우기</button>' : '');
+    function save(sh, v, done) {
+      var key = fv(sh, "sKey") || rtKey();
+      if (!key) { sh.querySelector("#sKeyWrap").hidden = false; sh.msg("선생님 열쇠를 넣어 주세요"); return; }
+      var ok = sh.querySelector("[data-ok]"); ok.disabled = true; ok.textContent = "저장 중…"; sh.msg("");
+      var it = {}; it[WG_K] = v;
+      rtPost({ a: "kv_set", key: key, items: it }).then(function (j) {
+        if (!j || !j.ok) { ok.disabled = false; ok.textContent = "저장"; rtErr(j, sh); return; }
+        try { localStorage.setItem("ptkey", key); } catch (x) {}
+        if (v === null) delete KV[WG_K]; else KV[WG_K] = v;
+        kvKeep(); sh.close(); wgRefresh(); attToast(done);
+      }).catch(function () { ok.disabled = false; ok.textContent = "저장"; sh.msg(rtNetMsg()); });
+    }
+    var sh = rtSheet(st ? "목표 체중 바꾸기" : "목표 체중 정하기", body, function (sh) {
+      var sv = Number(fv(sh, "gS").replace(",", ".")), tv = Number(fv(sh, "gT").replace(",", ".")), by = fv(sh, "gB");
+      if (!(sv >= 20 && sv <= 300)) return "시작 체중을 확인해 주세요 (예 68)";
+      if (!(tv >= 20 && tv <= 300)) return "목표 체중을 확인해 주세요 (예 60)";
+      if (wgR(sv) === wgR(tv)) return "시작과 목표 체중이 같아요";
+      var v = { start: wgR(sv), target: wgR(tv), set: ymd(new Date()) };
+      if (by) v.by = by;
+      save(sh, v, "목표 체중을 정했어요 · 회원님 노트에 바로 나와요");
+      return true;
+    }, "저장");
+    var clr = sh.querySelector(".wg-clear");
+    if (clr) clr.addEventListener("click", function () {
+      if (!clr.classList.contains("arm")) { clr.classList.add("arm"); clr.textContent = "한 번 더 누르면 지워요"; return; }
+      save(sh, null, "목표 체중을 지웠어요");
+    });
+    setTimeout(function () { var i = sh.querySelector(st ? "#gT" : "#gS"); if (i && !i.value) i.focus(); }, 60);
+  }
+  function setupWg() {
+    Array.prototype.forEach.call(document.querySelectorAll(".wg-add"), function (b) { if (!b._wg) { b._wg = 1; b.addEventListener("click", wgAddSheet); } });
+    Array.prototype.forEach.call(document.querySelectorAll(".wg-edit"), function (b) { if (!b._wg) { b._wg = 1; b.addEventListener("click", wgGoalSheet); } });
+    Array.prototype.forEach.call(document.querySelectorAll(".wg-del"), function (b) {
+      if (b._wg) return; b._wg = 1;
+      b.addEventListener("click", function () {
+        if (!b.classList.contains("arm")) {
+          b.classList.add("arm"); b.textContent = "한 번 더";
+          setTimeout(function () { if (b.isConnected) { b.classList.remove("arm"); b.textContent = "삭제"; } }, 3000);
+          return;
+        }
+        b.disabled = true; b.textContent = "삭제 중…";
+        var d = b.getAttribute("data-d");
+        attCall("").catch(function () { return null; }).then(function () {
+          var log = wgLog().filter(function (x) { return x[0] !== d; }), it = {}; it[WL_K] = log;
+          return rtPost({ a: "kv_set", items: it }).then(function (j) {
+            if (!j || !j.ok) throw new Error("del");
+            KV[WL_K] = log; kvKeep(); wgRefresh();
+          });
+        }).catch(function () { b.disabled = false; b.classList.remove("arm"); b.textContent = "삭제"; attToast(rtNetMsg()); });
       });
     });
   }
@@ -1428,7 +1658,7 @@
     var h = '<div class="hero"><div class="hero-main"><div class="hero-l hero-home"><div class="hh-text">' +
       '<div class="eyebrow">MY PT NOTE <b>· 나만의 운동 노트</b></div>' +
       '<h1>' + esc(M.name) + ' 회원님</h1>' +
-      '<div class="en">' + esc(M.goal || "") + '</div>' +
+      '<div class="en wg-en">' + esc(wgEn()) + '</div>' +
       '<div class="who"><span>' + esc(BRN) + ' · ' + esc(TRN) + ' 트레이너</span></div>' +
       '</div>' + attCheckStrip() + '</div></div></div>';
 
@@ -1456,6 +1686,7 @@
     h += '</section>';
 
     h += todayForms(d);
+    h += wgBlock("home");   /* 목표 체중 (2026-11-18) — 정한 회원만, 선생님 보기에선 정하기 버튼 */
     h += reportHomeCard();
     h += journeyHome();
     if (IB_ON) h += ibHomeStrip() || '<span class="ibstrip-slot"></span>';
@@ -2500,6 +2731,7 @@
     else if (hsh === "notice") { html = renderNotice(); tab = "notice"; }
     else if (hsh === "goal" || hsh === "journey") { html = renderGoal(); tab = "goal"; }
     else if (hsh === "goal-badges" || hsh === "badges") { html = renderGoal(); tab = "goal"; jumpTo = "badges"; }
+    else if (hsh === "goal-weight" || hsh === "weight") { html = renderGoal(); tab = "goal"; jumpTo = "weight"; }
     else if (hsh === "muscle") { html = renderRoutine(); tab = "routine"; jumpTo = "muscle"; }
     else if (hsh === "report" || /^report-\d{4}-\d{2}$/.test(hsh)) { html = renderReport(hsh.slice(7)); tab = "routine"; after = setupReport; }
     else if ((hsh === "body" || hsh === "inbody") && IB_ON) { html = renderBody(); tab = "body"; }
@@ -2514,7 +2746,7 @@
     alignText(document);
     if (/^form-/.test(hsh) && !DEMO) lsAdd(FOPEN_KEY, [hsh.slice(5)]);
     litApply(tab);
-    setupAttCheck(); setupCal(); setupIb(); setupBadges(); setupMuscle(); setupRtEdit(); setupExCheck();
+    setupAttCheck(); setupCal(); setupIb(); setupWg(); setupBadges(); setupMuscle(); setupRtEdit(); setupExCheck();
     if (after) after();
     var flashEl = null;
     if (tab === "notice") {

@@ -117,6 +117,7 @@ _tools/anatomy_v3.py  인체모형 v3 (자극 부위 그림). build(경로, 앞 
   - icon: 음식 이름(assets/food/<이름>.png: sweet_potato·rice_white·rice_brown·oatmeal·potato·chicken·beef·fish·egg·pork·tofu·shrimp·veg·salt·talk·clipboard) 또는 ic_끼니(ic_sun·ic_moon·ic_tray·ic_shaker·ic_water·ic_scale, 테마색). 새 음식은 make_food.py에 함수 추가 → make_diet_web.py 다시 실행
   - **끼니별로 정해진 식단** (2026-11-05, OO님 벌크업 식단처럼 메뉴가 정해진 경우): carbs/prots 대신 `meals[{no:"1식", name?, tag?("운동 후" → 금색 강조), note?, options[{label?, foods[{icon,name,amount?}]}]}]` — options가 2개 이상이면 사이에 '또는'. meals_title·meals_sub로 제목 변경 가능. carbs/prots·rules는 없어도 됨.
   - 음식 그림 추가(2026-11-05): bagel(베이글)·carbo(카보린 같은 탄수화물 보충제 파우치)
+- weight_goal (2026-11-18, 선택): `{start: 68, target: 60, by?: "YYYY-MM-DD"}` — 목표 체중. 선생님이 폰에서 정한 값(창고 저장소)이 있으면 그게 이김. 아래 '목표 체중'.
 - 복습지·루틴·식단을 새로 올리면 notices 맨 위에 공지 한 줄 추가.
 - **순환 루틴** (2026-11-04, 교대근무 등 쉬는 요일이 매주 다른 회원): routine.rotation: true, rotation_start:"YYYY-MM-DD", days[].day = "DAY 1"…"DAY N" (rest 날 없이 운동하는 날만).
   - 주소 #routine-d1 … dN. 루틴 탭 01 '순서 한눈에'(DAY 타일 + 7칸 채우는 '휴 · 근무표 따라' 타일).
@@ -285,13 +286,19 @@ _tools/anatomy_v3.py  인체모형 v3 (자극 부위 그림). build(경로, 앞 
 - 아래 탭: 홈·목표·몸변화·**운동**·식단·공지 (복습지 탭 없어짐). 운동 탭 맨 위 전환칸(.wsw) 루틴 ↔ 복습지. 주소는 그대로 #routine · #routine-mon · #forms · #form-<id> (예전 링크·선생님 페이지 바로가기 다 됨).
 - 점등: 루틴이나 복습지 중 하나라도 새 것이면 운동 탭이 켜지고, 전환칸의 그쪽에 빨간 점. 코드 app.js workSwitch·litApply.
 
+## 목표 체중 (2026-11-18 선생님 "구혜주 회원님은 다이어트라 목표를 몸무게로")
+- 선생님 보기(선생님 페이지를 연 폰)에서 회원 노트 홈 또는 목표 탭의 **"✎ 목표 체중 정하기"** → 시작 체중·목표 체중·목표 날짜(선택) → 저장(선생님 열쇠). 창고 저장소 `pub:m:<주소>:wgoal` = {start, target, by?, set}. 회원 폰에는 정한 회원만 보임. 파일 회원은 data.js `weight_goal` 로도 됨(저장소가 이김).
+- 회원 노트: 홈(오늘의 자세 복습지 다음) "나의 목표 체중" 칸 + 목표 탭 맨 위(#goal-weight, 그래프·기록 목록) — 시작 → 지금 → 목표, 몇 % 왔는지 막대, "목표까지 n kg · 벌써 n kg 뺐어요", 목표 날짜가 있으면 D-day·"주 n kg씩이면 돼요", 달성하면 "목표 체중 달성!". 홈 이름 밑 한 줄 "다이어트 · 목표 60kg", 목표 탭 제목 "목표 체중 60kg". 늘리는 목표(목표 > 시작)도 됨.
+- 지금 체중 = 회원(또는 선생님)이 **"체중 기록하기"**로 넣은 체중(저장소 `mw:<주소>:wlog` [["YYYY-MM-DD", kg], …], 회원 폰도 저장 가능, 최근 150개, 같은 날은 덮어씀) + 몸변화 탭 인바디 기록의 체중을 합친 것 중 가장 최근. 직접 넣은 기록은 목록에서 삭제(두 번), 인바디는 몸변화 탭에서.
+- 창고(Apps Script) 재배포 필요 없음(범용 저장소). 코드 app.js wgState·wgCard·wgInner·wgAddSheet·wgGoalSheet·kvServer(출석 GET 응답 kv를 ptnote:<주소>:kv에 기억), style.css "목표 체중" 블록.
+
 ## 회원 노트 앱 설치 (2026-11-18 선생님 "설치 및 바로가기에서 '이 앱을 설치할 수 없습니다' → 다운로드되게")
 - 회원 노트(404.html·`_tools/member_index_template.html` 껍데기)에 `<link rel="manifest" href="/m/app.webmanifest">` — 안드로이드 크롬 "설치"(앱처럼 따로 열림)가 됨.
 - `m/app.webmanifest` = 모든 회원이 같이 쓰는 파일 하나: 이름 "PT 노트"/"PT노트", scope /m/, standalone, 흰색, 아이콘 assets/icon-192.png·icon-512.png(`_tools/make_app_icon.py` NOTE). **start_url 을 일부러 안 적음** → 크롬·아이폰 둘 다 '지금 연 회원 주소'를 앱 시작 주소로 씀(크롬 id도 회원 주소라 회원마다 다른 앱). start_url 을 넣으면 모든 회원이 같은 주소로 열리니 넣지 말 것.
 - 아이콘을 바꾸면 manifest의 `?v=` 도 올릴 것. 선생님 앱은 따로 `coach-5gb96f/manifest.webmanifest`.
 
 ## 홈 순서 (2026-11-17 트레이너 "홈에 오늘의 운동 루틴·오늘의 자세 복습지부터")
-- 회원 홈: 이름·출석 상자 → **오늘의 운동** → **오늘의 자세 복습지** → 월간 리포트 카드(1~7일) → 나의 PT 여정 → 인바디 띠 → 다음 수업 → 선생님 공지.
+- 회원 홈: 이름·출석 상자 → **오늘의 운동** → **오늘의 자세 복습지** → 목표 체중(정한 회원만) → 월간 리포트 카드(1~7일) → 나의 PT 여정 → 인바디 띠 → 다음 수업 → 선생님 공지.
 - 오늘의 자세 복습지 = 오늘 루틴 종목에 붙은 복습지(itemForm: form id 또는 같은 이름) 전부. 오늘 붙은 게 없으면(쉬는 날 포함) "최근에 배운 자세"로 최신 2개. 코드 app.js renderHome·todayForms.
 
 ## 종목 체크 · 자동 출석 (2026-11-17 트레이너 "개인운동할 때 한 종목 끝날 때마다 체크, 종목 체크해도 출석 자동으로")
