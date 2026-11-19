@@ -1170,7 +1170,30 @@
     });
     setTimeout(function () { var i = sh.querySelector(st ? "#gT" : "#gS"); if (i && !i.value) i.focus(); }, 60);
   }
+  /* 앱 회원 정보 고치기 (2026-11-19) — 선생님 보기 홈 맨 아래. 주소·출석·복습지는 그대로, 이름·성별·목표·시작일만 바뀜(roster.js PTR.update). */
+  function miSheet() {
+    var body = '<p class="rts-p">주소는 그대로라 회원님께 다시 보낼 필요 없어요. 출석·복습지·식단 기록도 그대로예요.</p>' +
+      '<label>이름 <small>그룹 PT는 "이름 · 이름"</small><input id="miN" autocomplete="off" value="' + esc(M.name || "") + '"></label>' +
+      '<label>성별<select id="miS"><option value="F"' + (M.sex === "F" ? " selected" : "") + '>여</option><option value="M"' + (M.sex !== "F" ? " selected" : "") + '>남</option></select></label>' +
+      '<label>목표 <small>예: 다이어트</small><input id="miG" autocomplete="off" value="' + esc(M.goal || "") + '"></label>' +
+      '<label>PT 시작일<input id="miD" type="date" value="' + esc((M.journey && M.journey.start) || "") + '"></label>' +
+      '<label id="sKeyWrap"' + (rtKey() ? ' hidden' : '') + '>선생님 열쇠 <small>처음 한 번만</small><input id="sKey" type="password" autocomplete="off"></label>';
+    rtSheet("회원 정보 고치기", body, function (sh) {
+      var n = fv(sh, "miN").replace(/\s*·\s*/g, " · ").trim();
+      if (!n) return "이름을 넣어 주세요";
+      var key = fv(sh, "sKey") || rtKey();
+      if (!key) { sh.querySelector("#sKeyWrap").hidden = false; return "선생님 열쇠를 넣어 주세요"; }
+      var ok = sh.querySelector("[data-ok]"); ok.disabled = true; ok.textContent = "저장 중…"; sh.msg("");
+      PTR.update(SLUG, { name: n, sex: sh.querySelector("#miS").value, goal: fv(sh, "miG"), start: fv(sh, "miD") }, key).then(function () {
+        try { localStorage.setItem("ptkey", key); } catch (x) {}
+        try { var kv = JSON.parse(localStorage.getItem("ptnote:" + SLUG + ":kv") || "null"); if (kv) { delete kv["pub:m:" + SLUG + ":profile"]; localStorage.setItem("ptnote:" + SLUG + ":kv", JSON.stringify(kv)); } } catch (x) {}
+        sh.close(); attToast("회원 정보를 바꿨어요"); setTimeout(function () { location.reload(); }, 700);
+      }).catch(function (e) { ok.disabled = false; ok.textContent = "저장"; if (e && e.j) rtErr(e.j, sh); else sh.msg(rtNetMsg()); });
+      return true;
+    }, "저장");
+  }
   function setupWg() {
+    Array.prototype.forEach.call(document.querySelectorAll(".mi-edit"), function (b) { if (!b._mi) { b._mi = 1; b.addEventListener("click", miSheet); } });
     Array.prototype.forEach.call(document.querySelectorAll(".wg-add"), function (b) { if (!b._wg) { b._wg = 1; b.addEventListener("click", wgAddSheet); } });
     Array.prototype.forEach.call(document.querySelectorAll(".wg-edit"), function (b) { if (!b._wg) { b._wg = 1; b.addEventListener("click", wgGoalSheet); } });
     Array.prototype.forEach.call(document.querySelectorAll(".wg-del"), function (b) {
@@ -1972,6 +1995,7 @@
       h += '<section>' + head("", "선생님 공지", "", '<a class="more" href="#notice">전체 →</a>') + noticeCard(n) + '</section>';
     }
 
+    if (CAN_EDIT && M._app && window.PTR && PTR.update) h += '<button type="button" class="panel wgset mi-edit"><b>✎ 회원 정보 고치기</b><small>이름·성별·목표·PT 시작일 · 선생님만 보여요</small></button>';
     return h + remember();
   }
   /* 오늘의 자세 복습지: 오늘 루틴 종목에 붙은 복습지(itemForm) → 없으면 최근 복습지 2개 */

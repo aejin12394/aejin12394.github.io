@@ -165,5 +165,25 @@
     });
   }
 
-  window.PTR = { slugs: slugs, load: load, appRoster: appRoster, fromProfile: fromProfile, create: create, remove: remove, roman: roman, publish: publish, withExtra: withExtra };
+  /* 앱 회원 정보 고치기 (2026-11-19 선생님 "고인혜·김서현 노트 고인혜 이름 빼줘") — 주소는 그대로, 이름·성별·목표·시작일만.
+     저장소 profile + 명단(roster)의 이름·성별을 같이 바꾸고 팀장님 공개 목록(publish)도 다시 씀. 출석·복습지 등은 주소 기준이라 그대로. */
+  function update(slug, info, key) {
+    var name = String(info.name || "").trim().slice(0, 30);
+    if (!name) return Promise.reject(new Error("name"));
+    var prof = { name: name, sex: info.sex === "F" ? "F" : "M", goal: String(info.goal || "").trim().slice(0, 80), start: info.start || "", at: info.at || new Date().toISOString().slice(0, 10) };
+    return appRoster().then(function (r) {
+      var hit = false;
+      r = r.map(function (x) { if (x.slug !== slug) return x; hit = true; return { slug: x.slug, name: name, sex: prof.sex, at: x.at }; });
+      if (!hit) r.push({ slug: slug, name: name, sex: prof.sex, at: prof.at });
+      var items = {};
+      items["pub:m:" + slug + ":profile"] = prof;
+      items["pub:m:" + COACH + ":roster"] = r;
+      return fetch(API, { method: "POST", body: JSON.stringify({ a: "kv_set", m: COACH, key: key, items: items }) }).then(function (x) { return x.json(); });
+    }).then(function (j) {
+      if (!j || !j.ok) { var e = new Error((j && j.error) || "save"); e.j = j; throw e; }
+      try { localStorage.setItem("ptnote:" + slug + ":profile", JSON.stringify(prof)); } catch (e) {}
+      return publish(key).catch(function () {}).then(function () { return prof; });
+    });
+  }
+  window.PTR = { slugs: slugs, load: load, appRoster: appRoster, fromProfile: fromProfile, create: create, remove: remove, roman: roman, publish: publish, withExtra: withExtra, update: update };
 })();
