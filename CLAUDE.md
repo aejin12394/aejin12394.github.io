@@ -290,9 +290,13 @@ _tools/anatomy_v3.py  인체모형 v3 (자극 부위 그림). build(경로, 앞 
 
 ## 노트 테마 (2026-11-17 트레이너 손글씨 운동일지 사진 보고 "내 폰트 적용, 테마도 사진처럼" → 시안 보고 "이대로 가자")
 - 회원 PT 노트 전체(남녀 같음): 흰 모눈종이 바탕 + **나눔손글씨 엄마사랑**(선생님이 운동일지에 쓰는 폰트) + 검정 펜 · 노란 형광펜(회원 이름·제목·KEY POINT·'지금 여기'·메인 종목) · 빨간 밑줄(KEY POINT·'자세히 →') · 연보라 형광펜(소제목) · 칸은 색 채움 없이 펜 테두리.
-- 코드: `assets/style.css` 맨 아래 "노트 테마" 블록 하나(변수 덮어쓰기 + 몇 줄). 이 블록을 지우면 예전 초록/노랑으로 돌아감. 폰트는 jsDelivr(@kfonts/nanum-handwritting-eommasalang)에서 불러옴, 손글씨가 작게 보여 `font-size-adjust: .6` 으로 키움.
+- 코드: `assets/style.css` 맨 아래 "노트 테마" 블록 하나(변수 덮어쓰기 + 몇 줄). 이 블록을 지우면 예전 초록/노랑으로 돌아감. 폰트는 사이트 안 assets/fonts/ 조각(아래 '노트 빨리 열기'), 손글씨가 작게 보여 `font-size-adjust: .6` 으로 키움.
 - 그대로 둔 것: 움직이는 운동 아이콘·근육 지도 색(초록), 바프 패널, 월간 리포트 카드, 배지 팝업, 선생님 페이지, PT 안내서, og.jpg. 회원 index.html theme-color 는 #ffffff.
 - 새 회원 index.html 을 만들 때 theme-color 는 #ffffff (성별 구분 없음).
+
+## 노트 빨리 열기 (2026-11-19 선생님 "노트 들어갈 때 렉 걸리는 거 없애줘")
+- 글씨체: jsDelivr 통째(수 MB) 대신 사이트 안 `assets/fonts/eommasalang-*.woff` 조각 23개 — core(152KB, 화면 문구 글자)는 404.html·껍데기에서 preload, 나머지는 그 글자가 화면에 있을 때만 받음(unicode-range). 만드는 법 `_tools/make_font_chunks.py`. 회원 노트에서 구글 Noto Sans KR 글꼴 CSS는 뺌(막는 요청 하나 줄임).
+- 앱 회원(404.html): 이 폰에 기억된 profile(ptnote:<주소>:profile, app.js 가 받은 ptnote:<주소>:kv 의 profile 이 이김)이 있으면 **창고를 기다리지 않고 바로** 그림 — 처음 여는 폰만 창고(1~3초)를 기다림. app.js·exicons.js 도 preload. 시험: 창고 2.5초 지연 → 두 번째부터 0.15초(전엔 2.6초).
 
 ## 운동 탭 = 루틴 + 복습지 (2026-11-17 트레이너 "루틴이랑 복습지 합쳐서 운동 카테고리로, 상단에 전환칸")
 - 아래 탭: 홈·목표·몸변화·**운동**·식단·공지 (복습지 탭 없어짐). 운동 탭 맨 위 전환칸(.wsw) 루틴 ↔ 복습지. 주소는 그대로 #routine · #routine-mon · #forms · #form-<id> (예전 링크·선생님 페이지 바로가기 다 됨).

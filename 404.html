@@ -14,10 +14,10 @@
 <link rel="apple-touch-icon" href="/assets/icon.png?v=3">
 <!-- 앱 설치(2026-11-18): start_url 을 일부러 안 적음 → 지금 연 회원 주소가 그대로 앱 시작 주소 (안드로이드·아이폰 둘 다) -->
 <link rel="manifest" href="/m/app.webmanifest">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap">
+<link rel="preload" href="/assets/fonts/eommasalang-core.woff?v=1" as="font" type="font/woff" crossorigin>
 <link rel="stylesheet" href="/assets/style.css">
+<link rel="preload" href="/assets/app.js" as="script">
+<link rel="preload" href="/assets/exicons.js" as="script">
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -62,15 +62,21 @@
       var s = document.createElement("script"); s.src = src; s.async = false; document.body.appendChild(s);
     });
   }
+  /* 빨리 열기 (2026-11-19 "노트 들어갈 때 렉"): 이 폰에 기억된 정보가 있으면 창고(1~3초)를 기다리지 않고 바로 그림.
+     최신 정보는 app.js 가 출석 창고에서 받아 ptnote:<주소>:kv 에 기억 → 다음에 열 때 여기서 씀. 처음 여는 폰만 창고를 기다림. */
   var cached = null;
   try { cached = JSON.parse(localStorage.getItem(LS) || "null"); } catch (e) {}
+  try {
+    var kv = JSON.parse(localStorage.getItem("ptnote:" + slug + ":kv") || "null"), kp = kv && kv["pub:m:" + slug + ":profile"];
+    if (kp && kp.name) { cached = kp; localStorage.setItem(LS, JSON.stringify(kp)); }
+  } catch (e) {}
+  if (cached && cached.name) { start(cached); return; }
   fetch(api + "?m=" + encodeURIComponent(slug), { cache: "no-store" }).then(function (r) { return r.json(); }).then(function (j) {
     var prof = j && j.kv && j.kv["pub:m:" + slug + ":profile"];
     if (prof) { try { localStorage.setItem(LS, JSON.stringify(prof)); } catch (e) {} start(prof); }
     else { try { localStorage.removeItem(LS); } catch (e) {} notFound("없는 PT 노트예요", "주소가 맞는지 선생님께 확인해 주세요"); }
   }).catch(function () {
-    if (cached) start(cached);
-    else notFound("PT 노트를 못 불러왔어요", "인터넷 연결을 확인하고 새로고침해 주세요");
+    notFound("PT 노트를 못 불러왔어요", "인터넷 연결을 확인하고 새로고침해 주세요");
   });
 })();
 </script>
