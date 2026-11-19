@@ -101,6 +101,11 @@ _tools/anatomy_v3.py  인체모형 v3 (자극 부위 그림). build(경로, 앞 
     - 폰에서 만든 루틴이 있으면(창고 GET 응답 routine, base "") 그 내용을 data.js routine 으로 옮길 것 — 안 그러면 data.js 기준이 달라져 폰 루틴이 꺼짐.
   - Claude가 파일로 만든 회원은 창고 명단에 안 넣음(members.js가 명단).
 
+## 수업 기록 + 영상 → 자세 복습지 (2026-11-19 선생님 "자세 복습지에 넣어줘, 앞으로 내가 얘기하면")
+- 선생님이 "<회원> <날짜> PT n회차 / 종목 무게 횟수…" + 종목 영상을 보내면 → **그 회원 PT 노트에 종목마다 자세 복습지**를 올림(아래 '자세 복습지 미디어 만들기'). id = `MMDD-<종목 영어>`, date = 수업 날짜, notices 맨 위에 "자세 복습지 n개가 올라왔어요"(link #forms). 종이 운동일지 PNG는 따로 말할 때만.
+- **앱 회원(창고 명단 회원)에게 올릴 때 = `m/<주소>/extra.js`** (`window.MEMBER_EXTRA = {forms, notices}`) + `m/<주소>/media/form-<id>/`. index.html·data.js 는 만들지 않음 → 계속 404.html(앱 회원)로 열리고 이름·목표·시작일·폰 루틴은 창고 그대로, extra 의 forms·notices 는 앞에 붙고 그 밖의 키는 덮어씀(roster.js mergeExtra·withExtra — 404.html·선생님 페이지·PT 안내서 다 같이 읽음). extra.js 에 routine 은 넣지 말 것(폰 루틴 기준이 바뀜).
+- 첫 예: 구혜주(guhyeju-u2734b) 11/18 몬스터 글루트·고블릿 스쿼트·레그 익스텐션.
+
 ## 팀장님(박현규) PT 노트용 공개 회원 목록 (2026-11-18 선생님 "팀장님 PT 노트 페이지에서 내가 폰으로 만든 회원도 보이게")
 - 창고 저장소 `pub:m:roster-list:members` = [{slug, name, sex, goal, start}] — 앱 회원(창고 명단 `pub:m:coach-5gb96f:roster` + 각 회원 `profile`) 기준, 명단 순서. 파일 회원(members.js)은 안 들어감.
 - 저장 시점: 선생님 페이지 "+ 새 회원 추가" 뒤 · "명단에서 빼기" 뒤 · 선생님 페이지를 열 때마다(선생님 열쇠 ptkey가 있는 폰만). 내용이 이미 같으면 다시 쓰지 않음. 회원 정보 '고치기' 화면은 아직 없음 — 생기면 저장 뒤 `PTR.publish(key)` 부를 것.

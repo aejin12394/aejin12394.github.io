@@ -49,7 +49,26 @@
     };
   }
 
-  /* 회원 한 명 불러오기: 파일(data.js) 먼저, 없으면 창고 정보 */
+  /* 앱 회원 + Claude가 올린 복습지 (2026-11-19 선생님 "자세 복습지에 넣어줘")
+     /m/<주소>/extra.js 가 window.MEMBER_EXTRA = {forms, notices, …} 를 정하면 창고 profile 로 만든 노트에 합침.
+     index.html·data.js 가 없으니 그 주소는 계속 404.html(앱 회원)로 열리고, 이름·목표·시작일은 창고 profile 그대로. */
+  function mergeExtra(M, X) {
+    if (!X) return M;
+    Object.keys(X).forEach(function (k) {
+      if (k === "notices") M.notices = (X.notices || []).concat(M.notices || []);
+      else if (k === "forms") M.forms = (X.forms || []).concat(M.forms || []);
+      else M[k] = X[k];
+    });
+    return M;
+  }
+  function extraText(slug) {
+    return fetch("/m/" + slug + "/extra.js", { cache: "no-store" }).then(function (r) { if (!r.ok) throw new Error("none"); return r.text(); })
+      .then(function (t) { var w = {}; new Function("window", t)(w); return w.MEMBER_EXTRA || null; })
+      .catch(function () { return null; });
+  }
+  function withExtra(M, slug) { return extraText(slug).then(function (X) { return mergeExtra(M, X); }); }
+
+  /* 회원 한 명 불러오기: 파일(data.js) 먼저, 없으면 창고 정보 (+ extra.js) */
   function load(slug) {
     return fetch("/m/" + slug + "/data.js", { cache: "no-store" }).then(function (r) {
       if (!r.ok) throw new Error("nofile");
@@ -62,7 +81,7 @@
       if (!API) return null;
       return getJSON(API + "?m=" + encodeURIComponent(slug)).then(function (j) {
         var p = j && j.kv && j.kv["pub:m:" + slug + ":profile"];
-        return p ? fromProfile(p) : null;
+        return p ? withExtra(fromProfile(p), slug) : null;
       }).catch(function () { return null; });
     });
   }
@@ -146,5 +165,5 @@
     });
   }
 
-  window.PTR = { slugs: slugs, load: load, appRoster: appRoster, fromProfile: fromProfile, create: create, remove: remove, roman: roman, publish: publish };
+  window.PTR = { slugs: slugs, load: load, appRoster: appRoster, fromProfile: fromProfile, create: create, remove: remove, roman: roman, publish: publish, withExtra: withExtra };
 })();

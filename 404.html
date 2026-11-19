@@ -50,7 +50,9 @@
   var slug = m[1], LS = "ptnote:" + slug + ":profile", api = (window.SITE || {}).att_api || "";
   window.ATT_SLUG = slug;
   function start(prof) {
-    var M = window.PTR.fromProfile(prof);
+    window.PTR.withExtra(window.PTR.fromProfile(prof), slug).then(go);   /* + /m/<주소>/extra.js (Claude가 올린 복습지 등) */
+  }
+  function go(M) {
     window.MEMBER = M;
     var nm = M.name + " 회원님 PT 노트";
     document.title = nm + " · " + ((window.SITE || {}).brand || "GYMTOS") + " " + ((window.SITE || {}).branch || "");
