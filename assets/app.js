@@ -2140,7 +2140,7 @@
       '<div class="keypoint"><small>KEY POINT</small><p>' + esc(f.key_point) + '</p></div>' + recBlock(f) + '</div>';
 
     h += '<section>' + head("01", "오늘 내 자세", "영상으로 확인해요") +
-      '<div class="player"><video id="main" poster="' + esc(D) + 'poster.jpg" autoplay muted loop playsinline webkit-playsinline preload="auto" data-src="' + esc(D) + 'form.mp4" data-gif="' + esc(D) + 'form.webp"></video>' +
+      '<div class="player' + (f.wide ? ' wide' : '') + '"><video id="main" poster="' + esc(D) + 'poster.jpg" autoplay muted loop playsinline webkit-playsinline preload="auto" data-src="' + esc(D) + 'form.mp4" data-gif="' + esc(D) + 'form.webp"></video>' +
       '<img id="gifFallback" alt="오늘 수업 영상 (반복 재생)" hidden>' +
       '<span class="chip">▶ 오늘 수업 영상</span><button class="tapper" id="tap" type="button" aria-label="영상 재생 / 멈춤"></button>' +
       '<div class="paused-badge" id="pbadge" hidden></div></div>' +

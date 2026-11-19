@@ -1361,3 +1361,4 @@ body, button, input, textarea, select { font-family: var(--font); }
 .frec-list li:first-child { border-top: none; }
 .frec-list b { font-size: 21px; min-width: 64px; }
 .frec-list em { font-style: normal; margin-left: auto; font-size: 19px; }
+.player.wide { aspect-ratio: 16 / 9; max-width: 100%; }   /* 가로로 찍은 영상 (form.wide) */
