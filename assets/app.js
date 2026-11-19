@@ -2096,17 +2096,24 @@
 
   /* 수업 기록 (2026-11-19 선생님 "몇 kg 몇 세트 했는지도") — form.record = [[kg, 횟수], …] (kg null = 맨몸) */
   function recKg(k) { return k === null || k === undefined || k === "" ? "맨몸" : esc(String(k)) + (typeof k === "number" ? "kg" : ""); }
-  function recSum(f) {
+  function recGroups(r) {   /* 같은 무게·횟수가 이어지면 묶음: [[kg, 횟수, 세트 수], …] */
+    var g = [];
+    r.forEach(function (x) { var l = g[g.length - 1]; if (l && l[0] === x[0] && String(l[1]) === String(x[1])) l[2]++; else g.push([x[0], x[1], 1]); });
+    return g;
+  }
+  function recLine(x) { return recKg(x[0]) + ' ' + esc(String(x[1])) + (typeof x[1] === "number" ? '회' : '') + ' x' + x[2]; }
+  function recSum(f) {   /* 목록 카드 한 줄: 5kg 15회 ×1 · 10kg 15회 ×1 · 15kg 15회 ×2 */
     var r = f.record; if (!r || !r.length) return "";
-    var ks = r.map(function (x) { return x[0]; }), lo = ks[0], hi = ks[ks.length - 1], same = ks.every(function (k) { return k === lo; });
-    return (same ? recKg(lo) : recKg(lo) + "→" + recKg(hi)) + " · " + r.length + "세트";
+    return recGroups(r).map(recLine).join(' · ');
   }
   function recBlock(f) {
     var r = f.record; if (!r || !r.length) return "";
     var reps = 0, num = true;
     r.forEach(function (x) { if (typeof x[1] === "number") reps += x[1]; else num = false; });
-    return '<div class="frec"><div class="frec-h"><small>오늘 수업 기록</small><b>총 ' + r.length + '세트' + (num ? ' · ' + reps + '회' : '') + '</b></div><div class="frec-sets">' +
-      r.map(function (x, i) { return '<span><i>' + (i + 1) + '세트</i><b>' + recKg(x[0]) + '</b>' + esc(String(x[1])) + (typeof x[1] === "number" ? '회' : '') + '</span>'; }).join("") + '</div></div>';
+    return '<div class="frec"><div class="frec-h"><small>오늘 수업 기록</small><b>총 ' + r.length + '세트' + (num ? ' · ' + reps + '회' : '') + '</b></div><ul class="frec-list">' +
+      recGroups(r).map(function (x) {
+        return '<li><b>' + recKg(x[0]) + '</b><span>' + esc(String(x[1])) + (typeof x[1] === "number" ? '회' : '') + '</span><em>x' + x[2] + '</em></li>';
+      }).join("") + '</ul></div>';
   }
   function formCard(f) {
     return '<a class="card-link" href="#form-' + esc(f.id) + '"><div class="thumb"><img src="' + esc(f.dir) + 'poster.jpg" alt="" loading="lazy"></div>' +

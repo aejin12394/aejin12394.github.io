@@ -1356,3 +1356,8 @@ body, button, input, textarea, select { font-family: var(--font); }
 .frec-sets i { display: block; font-style: normal; font-size: 11px; color: var(--faint); }
 .frec-sets b { display: block; font-size: 18px; }
 .frec-mini { font-size: 13px; margin-top: 2px; font-weight: 700; }
+.frec-list { list-style: none; margin: 0; padding: 0; border: 1.5px solid var(--ink, #111); border-radius: 12px; background: #fff; }
+.frec-list li { display: flex; align-items: baseline; gap: 10px; padding: 7px 14px; border-top: 1px dashed #bbb; font-size: 17px; }
+.frec-list li:first-child { border-top: none; }
+.frec-list b { font-size: 21px; min-width: 64px; }
+.frec-list em { font-style: normal; margin-left: auto; font-size: 19px; }
