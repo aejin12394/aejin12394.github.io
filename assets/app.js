@@ -2094,9 +2094,23 @@
     return '<div class="wsw" role="tablist" aria-label="운동">' + one("routine", "루틴") + one("forms", "복습지") + '</div>';
   }
 
+  /* 수업 기록 (2026-11-19 선생님 "몇 kg 몇 세트 했는지도") — form.record = [[kg, 횟수], …] (kg null = 맨몸) */
+  function recKg(k) { return k === null || k === undefined || k === "" ? "맨몸" : esc(String(k)) + (typeof k === "number" ? "kg" : ""); }
+  function recSum(f) {
+    var r = f.record; if (!r || !r.length) return "";
+    var ks = r.map(function (x) { return x[0]; }), lo = ks[0], hi = ks[ks.length - 1], same = ks.every(function (k) { return k === lo; });
+    return (same ? recKg(lo) : recKg(lo) + "→" + recKg(hi)) + " · " + r.length + "세트";
+  }
+  function recBlock(f) {
+    var r = f.record; if (!r || !r.length) return "";
+    var reps = 0, num = true;
+    r.forEach(function (x) { if (typeof x[1] === "number") reps += x[1]; else num = false; });
+    return '<div class="frec"><div class="frec-h"><small>오늘 수업 기록</small><b>총 ' + r.length + '세트' + (num ? ' · ' + reps + '회' : '') + '</b></div><div class="frec-sets">' +
+      r.map(function (x, i) { return '<span><i>' + (i + 1) + '세트</i><b>' + recKg(x[0]) + '</b>' + esc(String(x[1])) + (typeof x[1] === "number" ? '회' : '') + '</span>'; }).join("") + '</div></div>';
+  }
   function formCard(f) {
     return '<a class="card-link" href="#form-' + esc(f.id) + '"><div class="thumb"><img src="' + esc(f.dir) + 'poster.jpg" alt="" loading="lazy"></div>' +
-      '<div><span class="tagc">' + esc(f.part) + '</span>' + (formNew(f) ? '<span class="fnew">NEW</span>' : '') + '<h3>' + esc(f.exercise) + '</h3><p>' + esc(f.exercise_en) + ' · ' + esc(f.date) + '</p></div></a>';
+      '<div><span class="tagc">' + esc(f.part) + '</span>' + (formNew(f) ? '<span class="fnew">NEW</span>' : '') + '<h3>' + esc(f.exercise) + '</h3><p>' + esc(f.exercise_en) + ' · ' + esc(f.date) + '</p>' + (f.record && f.record.length ? '<p class="frec-mini">' + recSum(f) + '</p>' : '') + '</div></a>';
   }
   function renderForms() {
     var h = workSwitch("forms") + '<section>' + head("", "자세 복습지", "수업에서 배운 자세를 영상으로 다시 봐요");
@@ -2116,7 +2130,7 @@
       '<div class="hero-r"><div class="eyebrow">오늘의 타깃</div><ul class="dots">' +
       f.targets.map(function (t) { return '<li>' + esc(t) + '</li>'; }).join("") + '</ul>' +
       '<div class="benefit">' + esc(f.benefit) + '</div></div></div>' +
-      '<div class="keypoint"><small>KEY POINT</small><p>' + esc(f.key_point) + '</p></div></div>';
+      '<div class="keypoint"><small>KEY POINT</small><p>' + esc(f.key_point) + '</p></div>' + recBlock(f) + '</div>';
 
     h += '<section>' + head("01", "오늘 내 자세", "영상으로 확인해요") +
       '<div class="player"><video id="main" poster="' + esc(D) + 'poster.jpg" autoplay muted loop playsinline webkit-playsinline preload="auto" data-src="' + esc(D) + 'form.mp4" data-gif="' + esc(D) + 'form.webp"></video>' +

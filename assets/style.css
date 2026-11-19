@@ -1345,3 +1345,14 @@ body, button, input, textarea, select { font-family: var(--font); }
 .mw-chips small { font-size: 11px; opacity: .7; }
 .mw-chips b { font-size: 15px; }
 .mw-tip { margin: 10px 0 0; font-size: 12px; opacity: .7; }
+
+/* 복습지 수업 기록 (2026-11-19) */
+.frec { margin-top: 14px; }
+.frec-h { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
+.frec-h small { font-size: 13px; letter-spacing: .5px; color: var(--faint); }
+.frec-h b { font-size: 15px; }
+.frec-sets { display: grid; grid-template-columns: repeat(auto-fill, minmax(68px, 1fr)); gap: 6px; }
+.frec-sets span { border: 1.5px solid var(--ink, #111); border-radius: 10px; text-align: center; padding: 4px 2px 5px; font-size: 13px; line-height: 1.25; background: #fff; }
+.frec-sets i { display: block; font-style: normal; font-size: 11px; color: var(--faint); }
+.frec-sets b { display: block; font-size: 18px; }
+.frec-mini { font-size: 13px; margin-top: 2px; font-weight: 700; }

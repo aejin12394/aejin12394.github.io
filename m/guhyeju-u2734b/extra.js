@@ -6,7 +6,7 @@ window.MEMBER_EXTRA = {
   ],
   forms: [
     {
-      id: "1118-leg-extension", dir: "media/form-1118-leg-extension/", date: "2026. 11. 18",
+      id: "1118-leg-extension", record: [[15, 15], [15, 15], [15, 15], [15, 15]], dir: "media/form-1118-leg-extension/", date: "2026. 11. 18",
       exercise: "레그 익스텐션", exercise_en: "Leg Extension", part: "하체",
       targets: ["앞벅지 탄탄하게", "무릎 주변 근력", "하체 마무리"],
       benefit: "앞벅지(대퇴사두근)만 따로 집중해서 쓰는 머신이에요. 하체 운동 마지막에 남은 힘까지 꽉 채워 줘요.",
@@ -29,7 +29,7 @@ window.MEMBER_EXTRA = {
       dont: ["반동으로 다리 차올리기", "엉덩이 들기", "무게판을 쾅 내려놓기"]
     },
     {
-      id: "1118-goblet-squat", dir: "media/form-1118-goblet-squat/", date: "2026. 11. 18",
+      id: "1118-goblet-squat", record: [[6, 15], [6, 15], [6, 15], [6, 15]], dir: "media/form-1118-goblet-squat/", date: "2026. 11. 18",
       exercise: "고블릿 스쿼트", exercise_en: "Goblet Squat", part: "하체",
       targets: ["엉덩이·앞벅지", "바른 스쿼트 자세", "칼로리 많이 쓰기"],
       benefit: "덤벨을 몸 앞에 띄워 코 높이로 들면 상체가 자연스럽게 세워지고 코어까지 같이 써서 스쿼트 자세를 가장 쉽게 배울 수 있어요. 큰 근육을 한꺼번에 써서 다이어트에도 좋아요.",
@@ -52,7 +52,7 @@ window.MEMBER_EXTRA = {
       dont: ["덤벨이 가슴·배 쪽으로 내려오기", "무릎이 안쪽으로 모이기", "뒤꿈치 들기"]
     },
     {
-      id: "1118-monster-glute", dir: "media/form-1118-monster-glute/", date: "2026. 11. 18",
+      id: "1118-monster-glute", record: [[5, 15], [10, 15], [15, 15], [15, 15]], dir: "media/form-1118-monster-glute/", date: "2026. 11. 18",
       exercise: "몬스터 글루트", exercise_en: "Monster Glute", part: "엉덩이",
       targets: ["엉덩이 위쪽 볼륨", "힙업", "허리 대신 엉덩이 쓰기"],
       benefit: "엉덩이(대둔근) 힘으로 다리를 뒤로 밀어내는 머신이에요. 허리 부담 없이 엉덩이만 집중해서 키울 수 있어요.",

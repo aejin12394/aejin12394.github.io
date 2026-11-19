@@ -103,6 +103,7 @@ _tools/anatomy_v3.py  인체모형 v3 (자극 부위 그림). build(경로, 앞 
 
 ## 수업 기록 + 영상 → 자세 복습지 (2026-11-19 선생님 "자세 복습지에 넣어줘, 앞으로 내가 얘기하면")
 - 선생님이 "<회원> <날짜> PT n회차 / 종목 무게 횟수…" + 종목 영상을 보내면 → **그 회원 PT 노트에 종목마다 자세 복습지**를 올림(아래 '자세 복습지 미디어 만들기'). id = `MMDD-<종목 영어>`, date = 수업 날짜, notices 맨 위에 "자세 복습지 n개가 올라왔어요"(link #forms). 종이 운동일지 PNG는 따로 말할 때만.
+- 수업 기록은 form.record = [[kg, 횟수], …] (kg null = 맨몸, 횟수 자리에 "30초"도 됨) → 복습지 맨 위 KEY POINT 아래 '오늘 수업 기록'(세트 칸 + 총 n세트·n회), 목록 카드에 "5kg→15kg · 4세트" (2026-11-19 "몇 kg 몇 세트 했는지도"). 항상 넣을 것.
 - **앱 회원(창고 명단 회원)에게 올릴 때 = `m/<주소>/extra.js`** (`window.MEMBER_EXTRA = {forms, notices}`) + `m/<주소>/media/form-<id>/`. index.html·data.js 는 만들지 않음 → 계속 404.html(앱 회원)로 열리고 이름·목표·시작일·폰 루틴은 창고 그대로, extra 의 forms·notices 는 앞에 붙고 그 밖의 키는 덮어씀(roster.js mergeExtra·withExtra — 404.html·선생님 페이지·PT 안내서 다 같이 읽음). extra.js 에 routine 은 넣지 말 것(폰 루틴 기준이 바뀜).
 - 첫 예: 구혜주(guhyeju-u2734b) 11/18 몬스터 글루트·고블릿 스쿼트·레그 익스텐션.
 
