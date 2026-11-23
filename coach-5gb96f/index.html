@@ -15,7 +15,7 @@
 <link rel="apple-touch-icon" href="/assets/icon-coach-180.png?v=3">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" media="print" onload="this.media='all'">
 <link rel="stylesheet" href="/assets/style.css">
 <script src="/assets/site.js"></script>
 <style>
@@ -298,7 +298,7 @@ section.folded .fsum:not(:empty) { display: inline; }
   document.getElementById("sAll").textContent = LIST.length;
   document.getElementById("sub").textContent = BRN + " · 담당 회원 " + LIST.length + "명";
 
-  function loadMember(slug) { return window.PTR.load(slug).then(function (M) { if (!M) throw new Error("none"); return M; }); }
+  function loadMember(slug, app) { return window.PTR.load(slug, app).then(function (M) { if (!M) throw new Error("none"); return M; }); }
   function journeyText(M) {
     if (!M.journey || !M.journey.start) return "";
     var p = M.journey.start.split("-"), st = new Date(+p[0], +p[1] - 1, +p[2]);
@@ -338,7 +338,7 @@ section.folded .fsum:not(:empty) { display: inline; }
     info += '<span>루틴 <b>' + esc(R.version || "–") + (M._rted ? ' ✎' : '') + '</b></span><span>복습지 <b>' + (M.forms || []).length + '개</b></span>';
     var jt = journeyText(M);
     var stKey = !days ? "wait" : on ? "on" : rest ? "rest" : "off";
-    return '<div class="mcard ' + sex + '" data-name="' + esc(M.name) + '" data-cho="' + esc(cho(M.name)) + '" data-st="' + stKey + '"><a class="mtop" href="' + base + '#home"><span class="av ' + sex + '">' + esc(M.name.charAt(0)) + '</span>' +
+    return '<div class="mcard ' + sex + '" data-slug="' + esc(slug) + '" data-name="' + esc(M.name) + '" data-cho="' + esc(cho(M.name)) + '" data-st="' + stKey + '"><a class="mtop" href="' + base + '#home"><span class="av ' + sex + '">' + esc(M.name.charAt(0)) + '</span>' +
       '<div><h3>' + esc(M.name) + ' 회원님</h3><p>' + esc(M.goal || "") + (jt ? ' · ' + jt : '') + '</p></div>' + st + '</a>' +
       '<div class="mrow2">' + info + '</div>' +
       '<div class="qlinks"><a class="' + sex + '" href="' + base + '#home">홈</a><a class="' + sex + '" href="' + base + '#goal">출석·목표</a>' +
@@ -550,43 +550,76 @@ section.folded .fsum:not(:empty) { display: inline; }
   }
   bnLoad();
 
-  function render() {
+  /* 빨리 열기 (2026-11-23 선생님 "선생님 페이지 들어갈 때 로딩이 너무 오래 걸려")
+     ① 지난번에 본 목록(이 폰 localStorage ptcoach:snap)을 열자마자 그림 → ② 창고 명단 1번 → ③ 회원마다 창고 GET 1번(data.js 와 동시에)으로
+     정보·출석·폰 루틴을 한꺼번에 받아 카드를 하나씩 새로 고침. 예전엔 명단 → 회원 정보 → 출석을 차례로, 같은 요청을 두 번씩 했음. */
+  var SNAP_K = "ptcoach:snap";
+  function snapLoad() { try { var o = JSON.parse(localStorage.getItem(SNAP_K) || "null"); return o && o.rows && o.rows.length ? o : null; } catch (e) { return null; } }
+  function snapSave(rows) {
+    try {
+      localStorage.setItem(SNAP_K, JSON.stringify({ at: Date.now(), rows: rows.map(function (r) {
+        var M = {}; Object.keys(r.M).forEach(function (k) { if (k !== "_att" && k !== "forms" && k !== "diet" && k !== "notices") M[k] = r.M[k]; });
+        M.forms = (r.M.forms || []).map(function (f) { return { id: f.id, date: f.date, exercise: f.exercise }; });
+        M.diet = r.M.diet ? { updated: r.M.diet.updated || "" } : null;
+        return { slug: r.slug, M: M, days: r.days || null };
+      }) }));
+    } catch (e) {}
+  }
+  function counts(rows) {
+    var onN = 0, restN = 0;
+    rows.forEach(function (r) { if (r.days && r.days[today] != null) onN++; else if (isRestToday(r.M)) restN++; });
+    document.getElementById("sOn").textContent = onN;
+    document.getElementById("sWait").textContent = rows.length - onN - restN;
+    fsum("today", "출석 " + onN + " · 미출석 " + (rows.length - onN - restN));
+  }
+  function drawRows(rows) {
     var box = document.getElementById("list");
-    window.PTR.slugs(window.COACH_MEMBERS).then(function (l) {
-      LIST = l;
+    box.innerHTML = rows.length ? rows.map(function (r) { return card(r.slug, r.M, r.days || null); }).join("") : '<div class="panel empty"><h3>아직 회원이 없어요</h3><p>위 "+ 새 회원 추가"로 만들어 보세요</p></div>';
+    document.getElementById("sAll").textContent = rows.length;
+    document.getElementById("sub").textContent = BRN + " · 담당 회원 " + rows.length + "명";
+    fsum("list", rows.length + "명");
+    paneMark(); applyFilter();
+  }
+  var snap = snapLoad();
+  if (snap) { drawRows(snap.rows); counts(snap.rows); renderRank(snap.rows); }
+
+  function render() {
+    var box = document.getElementById("list"), old = {};
+    (snap ? snap.rows : []).forEach(function (r) { old[r.slug] = r; });
+    window.PTR.appRoster().then(function (roster) {
+      var app = {}; roster.forEach(function (x) { app[x.slug] = 1; });
+      LIST = (window.COACH_MEMBERS || []).slice();
+      roster.forEach(function (x) { if (LIST.indexOf(x.slug) < 0) LIST.push(x.slug); });
       document.getElementById("sAll").textContent = LIST.length;
       document.getElementById("sub").textContent = BRN + " · 담당 회원 " + LIST.length + "명";
-      return Promise.all(LIST.map(function (slug) {
-      return loadMember(slug).then(function (M) { return { slug: slug, M: M }; }).catch(function () { return null; });
-    })); }).then(function (rows) {
-      rows = rows.filter(Boolean);
-      box.innerHTML = rows.length ? rows.map(function (r) { return card(r.slug, r.M, null); }).join("") : '<div class="panel empty"><h3>아직 회원이 없어요</h3><p>위 "+ 새 회원 추가"로 만들어 보세요</p></div>';
-      nmDrawApp();
-      fsum("list", rows.length + "명");
-      if (isPad() && !paneSlug) { var last = ""; try { last = sessionStorage.getItem("ptpane") || ""; } catch (e) {} if (last) paneOpen(last); }
-      paneMark();
-      applyFilter();
-      var done = 0, onN = 0, restN = 0;
-      rows.forEach(function (r, i) {
-        fetch(API + "?m=" + encodeURIComponent(r.slug), { cache: "no-store" }).then(function (x) { return x.json(); })
-          .then(function (j) {
+      var rows = LIST.map(function (slug) { return old[slug] ? { slug: slug, M: old[slug].M, days: old[slug].days, _old: 1 } : null; });
+      var shown = !!snap && LIST.every(function (sl) { return old[sl]; }) && snap.rows.length === LIST.length;
+      if (!shown) drawRows(rows.filter(Boolean));   /* 명단이 바뀌었으면 아는 회원만 먼저 */
+      var done = 0, fresh = new Array(LIST.length);
+      LIST.forEach(function (slug, i) {
+        loadMember(slug, !!app[slug]).catch(function () { return null; }).then(function (M) {
+          if (!M) { fresh[i] = null; return null; }
+          var j = M._att;
+          var p = j ? Promise.resolve(j) : fetch(API + "?m=" + encodeURIComponent(slug), { cache: "no-store" }).then(function (x) { return x.json(); }).catch(function () { return null; });
+          return p.then(function (j) {
             /* 선생님이 폰에서 고친 루틴(창고)이 있으면 그걸로 — 쉬는 날·버전도 그대로 맞춤 */
-            if (j && j.ok && j.routine && j.routine.routine && j.routine.base === rtBase(r.M.routine)) { r.M.routine = j.routine.routine; r.M._rted = 1; }
-            return j && j.ok ? j.days : {};
-          }).catch(function () { return {}; })
-          .then(function (days) {
-            r.days = days;
-            var el = box.children[i]; if (el) el.outerHTML = card(r.slug, r.M, days);
-            paneMark();
-            applyFilter();
-            if (days[today] != null) onN++; else if (isRestToday(r.M)) restN++;
-            done++;
-            document.getElementById("sOn").textContent = onN;
-            document.getElementById("sWait").textContent = done === rows.length ? (rows.length - onN - restN) : "…";
-            if (done === rows.length) fsum("today", "출석 " + onN + " · 미출석 " + (rows.length - onN - restN));
-            if (done === rows.length) renderRank(rows);
+            if (j && j.ok && j.routine && j.routine.routine && j.routine.base === rtBase(M.routine)) { M.routine = j.routine.routine; M._rted = 1; }
+            fresh[i] = { slug: slug, M: M, days: j && j.ok ? (j.days || {}) : ((old[slug] && old[slug].days) || {}) };
           });
+        }).then(function () {
+          done++;
+          var cur = fresh.map(function (r, k) { return r || (fresh[k] === undefined && rows[k]) || null; }).filter(Boolean);
+          var el = box.querySelector('.mcard[data-slug="' + slug + '"]');
+          if (fresh[i] && el && done < LIST.length) { el.outerHTML = card(slug, fresh[i].M, fresh[i].days); paneMark(); applyFilter(); }
+          if (done === LIST.length) {
+            var fin = fresh.filter(Boolean);
+            drawRows(fin); counts(fin); renderRank(fin); snapSave(fin); nmDrawApp();
+            if (isPad() && !paneSlug) { var last = ""; try { last = sessionStorage.getItem("ptpane") || ""; } catch (e) {} if (last) paneOpen(last); }
+            snap = { rows: fin };
+          } else if (cur.length) counts(cur);
+        });
       });
+      if (!LIST.length) { drawRows([]); nmDrawApp(); }
     });
   }
 

@@ -69,20 +69,26 @@
   function withExtra(M, slug) { return extraText(slug).then(function (X) { return mergeExtra(M, X); }); }
 
   /* 회원 한 명 불러오기: 파일(data.js) 먼저, 없으면 창고 정보 (+ extra.js) */
-  function load(slug) {
+  /* 회원 한 명 불러오기: 파일(data.js) 먼저, 없으면 창고 정보 (+ extra.js)
+     app = 창고 명단에 있는 회원이면 창고 GET 을 data.js 와 동시에 시작(2026-11-23 "선생님 페이지 로딩 오래 걸려").
+     창고 GET 응답(출석 days·폰 루틴 routine 포함)은 M._att 로 붙여서 선생님 페이지가 같은 요청을 또 하지 않게. */
+  function load(slug, app) {
+    var g = null;
+    function att() { if (!g) g = API ? getJSON(API + "?m=" + encodeURIComponent(slug)).catch(function () { return null; }) : Promise.resolve(null); return g; }
+    if (app) att();
     return fetch("/m/" + slug + "/data.js", { cache: "no-store" }).then(function (r) {
       if (!r.ok) throw new Error("nofile");
       return r.text();
     }).then(function (t) {
       var w = {}; new Function("window", t)(w);
       if (!w.MEMBER) throw new Error("nofile");
+      if (g) return g.then(function (j) { if (j && j.ok) w.MEMBER._att = j; return w.MEMBER; });
       return w.MEMBER;
     }).catch(function () {
-      if (!API) return null;
-      return getJSON(API + "?m=" + encodeURIComponent(slug)).then(function (j) {
+      return att().then(function (j) {
         var p = j && j.kv && j.kv["pub:m:" + slug + ":profile"];
-        return p ? withExtra(fromProfile(p), slug) : null;
-      }).catch(function () { return null; });
+        return p ? withExtra(fromProfile(p), slug).then(function (M) { M._att = j; return M; }) : null;
+      });
     });
   }
 
