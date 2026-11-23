@@ -121,6 +121,7 @@
 .nmapp .nmi span { flex: 1; min-width: 0; }
 .nmapp .nmi small { display: block; color: var(--faint); font-size: 11.5px; }
 .nmapp .nmi button { flex: none; font: inherit; font-size: 12.5px; font-weight: 800; color: #C0392B; background: #fff; border: 1.5px solid #E7B9B2; border-radius: 9px; padding: 6px 10px; cursor: pointer; }
+.nmapp .nmi button.nmcp { color: var(--navy, #1F6442); border-color: #BFD3C6; }
 .nmapp .nmi button.sure { background: #C0392B; color: #fff; border-color: #C0392B; }
 .bnmsg { margin: 0; font-size: 13px; font-weight: 700; color: var(--bad); }
 .bnmsg:empty { display: none; }
@@ -232,7 +233,7 @@ section.folded .fsum:not(:empty) { display: inline; }
         <div class="row"><button type="button" id="nmCancel">취소</button><button type="submit" class="fill" id="nmSend">회원 노트 만들기</button></div>
       </form>
       <div class="nmdone" id="nmDone" hidden></div>
-      <details class="nmapp" id="nmApp" hidden><summary>앱에서 만든 회원 <b id="nmAppN">0</b>명 · 명단에서 빼기</summary><div id="nmAppList"></div></details>
+      <details class="nmapp" id="nmApp" hidden><summary>앱에서 만든 회원 <b id="nmAppN">0</b>명 · 주소 복사 · 명단에서 빼기</summary><div id="nmAppList"></div></details>
     </div>
     <div class="sbar" id="sbar">
       <label class="sbox"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M15.5 15.5 20 20" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
@@ -719,11 +720,13 @@ section.folded .fsum:not(:empty) { display: inline; }
       r = r.filter(function (x) { return files.indexOf(x.slug) < 0; });
       box.hidden = !r.length; document.getElementById("nmAppN").textContent = r.length;
       document.getElementById("nmAppList").innerHTML = r.map(function (x) {
-        return '<div class="nmi"><span>' + esc(x.name) + '<small>' + esc(x.slug) + ' · ' + esc(x.at || "") + '</small></span><button type="button" data-slug="' + esc(x.slug) + '">빼기</button></div>';
+        return '<div class="nmi"><span>' + esc(x.name) + '<small>' + esc(x.slug) + ' · ' + esc(x.at || "") + '</small></span><button type="button" class="nmcp" data-url="' + esc(location.origin + "/m/" + x.slug + "/") + '">주소 복사</button><button type="button" data-slug="' + esc(x.slug) + '">빼기</button></div>';
       }).join("");
     });
   }
   document.getElementById("nmAppList").addEventListener("click", function (e) {
+    var cp = e.target.closest("button.nmcp");   /* 앱 회원 주소 복사 (2026-11-23 "어플에서 어떻게 확인해") */
+    if (cp) { var u = cp.getAttribute("data-url"); (navigator.clipboard ? navigator.clipboard.writeText(u) : Promise.reject()).then(function () { bnToast("주소를 복사했어요"); }, function () { prompt("주소를 길게 눌러 복사하세요", u); }); return; }
     var b = e.target.closest("button[data-slug]"); if (!b) return;
     if (!b.classList.contains("sure")) { b.classList.add("sure"); b.textContent = "정말 빼기"; setTimeout(function () { b.classList.remove("sure"); b.textContent = "빼기"; }, 3000); return; }
     var key = bnKey(); if (!key) { nmOpen.click(); document.getElementById("nmMsg").textContent = "빼려면 선생님 열쇠를 먼저 넣어 주세요"; return; }
