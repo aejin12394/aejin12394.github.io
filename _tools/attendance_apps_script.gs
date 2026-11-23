@@ -191,6 +191,30 @@ function bnList_() {
   return out;
 }
 
+/* ---------------- 선생님 페이지용: 명단 + 회원 전원의 출석·폰 루틴·저장소를 한 번에 (2026-11-23 "선생님 페이지·회원 목록 늦게 떠")
+   GET ?m=<선생님 폴더>&a=all[&ms=주소,주소] → { ok, all: true, kv(pub:m:<선생님>:*), list: { 주소: { days, routine, kv } } }
+   시트를 한 번씩만 읽음(예전엔 회원마다 출석·루틴·저장소 시트를 통째로 다시 읽었음). ms = 명단 밖 회원(파일 회원) 주소. */
+function allJson_(coach, ms) {
+  const kv = kvAll_(), roster = kv['pub:m:' + coach + ':roster'], list = {};
+  function add(m) { if (memberOk_(m) && !list[m]) list[m] = { days: {}, routine: null, kv: {} }; }
+  (Array.isArray(roster) ? roster : []).forEach(function (x) { if (x) add(String(x.slug)); });
+  String(ms || '').split(',').forEach(function (m) { add(m.trim()); });
+  const att = sheet_().getDataRange().getValues();
+  for (let i = 1; i < att.length; i++) { const L = list[att[i][0]]; if (L) L.days[txt_(att[i][2], 'yyyy-MM-dd')] = txt_(att[i][3], 'HH:mm'); }
+  try {
+    const rv = rtMain_().getDataRange().getValues();
+    for (let i = 1; i < rv.length; i++) { const L = list[rv[i][0]]; if (L && !L.routine) { try { L.routine = JSON.parse(String(rv[i][3])); } catch (e) {} } }
+  } catch (e) {}
+  const own = {};
+  Object.keys(kv).forEach(function (k) {
+    if (k.indexOf('pub:m:' + coach + ':') === 0) own[k] = kv[k];
+    const mm = k.match(/^(?:pub:m|mw):([a-z0-9-]{3,40}):/);
+    if (mm && list[mm[1]]) list[mm[1]].kv[k] = kv[k];
+    if (k.indexOf('pub:all:') === 0) Object.keys(list).forEach(function (m) { list[m].kv[k] = kv[k]; });
+  });
+  return { ok: true, all: true, kv: own, list: list };
+}
+
 /* ---------------- 범용 저장소 (이름 → JSON 값) */
 function kvSheet_() { return rtSheet_(KV_SHEET, ['이름', '값(JSON)', '기록시각']); }
 function kvAll_() {
@@ -220,6 +244,7 @@ function doGet(e) {
   const m = String(p.m || '').trim();
   if (!memberOk_(m)) return json_({ ok: false, error: 'member' });
 
+  if (p.a === 'all') return json_(allJson_(m, p.ms));   // 선생님 페이지 한 번에 (2026-11-23)
   if (p.a === 'inbody') return json_({ ok: true, inbody: ibList_(m) });
   if (p.a === 'bn') return json_({ ok: true, bnotices: bnList_() });
   if (p.a === 'inbody_img') {

@@ -548,7 +548,6 @@ section.folded .fsum:not(:empty) { display: inline; }
     t.style.cssText = "position:fixed;left:50%;bottom:28px;transform:translateX(-50%);z-index:50;background:#1E3027;color:#fff;font-size:13.5px;font-weight:700;padding:10px 16px;border-radius:99px;box-shadow:0 4px 16px rgba(0,0,0,.2);max-width:calc(100% - 32px);text-align:center";
     document.body.appendChild(t); setTimeout(function () { t.remove(); }, 2800);
   }
-  bnLoad();
 
   /* 빨리 열기 (2026-11-23 선생님 "선생님 페이지 들어갈 때 로딩이 너무 오래 걸려")
      ① 지난번에 본 목록(이 폰 localStorage ptcoach:snap)을 열자마자 그림 → ② 창고 명단 1번 → ③ 회원마다 창고 GET 1번(data.js 와 동시에)으로
@@ -583,7 +582,7 @@ section.folded .fsum:not(:empty) { display: inline; }
   var snap = snapLoad();
   if (snap) { drawRows(snap.rows); counts(snap.rows); renderRank(snap.rows); }
 
-  function render() {
+  function renderSlow() {   /* 창고가 옛 버전(a=all 없음)일 때 — 회원마다 한 번씩 */
     var box = document.getElementById("list"), old = {};
     (snap ? snap.rows : []).forEach(function (r) { old[r.slug] = r; });
     window.PTR.appRoster().then(function (roster) {
@@ -615,12 +614,64 @@ section.folded .fsum:not(:empty) { display: inline; }
             var fin = fresh.filter(Boolean);
             drawRows(fin); counts(fin); renderRank(fin); snapSave(fin); nmDrawApp();
             if (isPad() && !paneSlug) { var last = ""; try { last = sessionStorage.getItem("ptpane") || ""; } catch (e) {} if (last) paneOpen(last); }
-            snap = { rows: fin };
+            snap = { rows: fin }; afterList();
           } else if (cur.length) counts(cur);
         });
       });
       if (!LIST.length) { drawRows([]); nmDrawApp(); }
     });
+  }
+
+
+  /* 한 번에 불러오기 (2026-11-23 "회원님 목록도 너무 늦게 떠") — 창고 GET ?m=<선생님>&a=all 한 번으로
+     명단 + 회원 전원의 출석·폰 루틴·저장소(profile 등). 파일 회원은 data.js 만 따로(깃허브라 빠름), 앱 회원은 extra.js.
+     창고가 옛 버전이면(응답에 all 없음) renderSlow. 새 버전으로 재배포해야 빨라짐(_tools/attendance_apps_script.gs allJson_). */
+  var afterDone = false;
+  function afterList() {   /* 회원 목록을 다 그린 뒤에 — 전체 공지 목록·팀장님 공개 목록 (창고를 같이 붙잡지 않게) */
+    if (afterDone) return; afterDone = true;
+    bnLoad();
+    if (bnKey()) window.PTR.publish(bnKey()).catch(function () {});
+  }
+  setTimeout(afterList, 8000);
+  function allUrl(files) { return API + "?m=" + encodeURIComponent(SITE.coach || "coach-5gb96f") + "&a=all" + (files.length ? "&ms=" + encodeURIComponent(files.join(",")) : ""); }
+  function render() {
+    var files = (window.COACH_MEMBERS || []).slice(), noall = false;
+    try { noall = localStorage.getItem("ptcoach:noall") === "1"; } catch (e) {}
+    if (noall) {   /* 창고가 옛 버전이라고 기억 → 바로 예전 방식, 다 그린 뒤 새 버전인지 한 번 확인 */
+      renderSlow();
+      setTimeout(function () {
+        fetch(allUrl(files), { cache: "no-store" }).then(function (r) { return r.json(); }).then(function (j) { if (j && j.all) try { localStorage.removeItem("ptcoach:noall"); } catch (e) {} }).catch(function () {});
+      }, 9000);
+      return;
+    }
+    fetch(allUrl(files), { cache: "no-store" })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        if (!j || !j.ok || !j.all || !j.list) { if (j && j.ok) try { localStorage.setItem("ptcoach:noall", "1"); } catch (e) {} return renderSlow(); }
+        var roster = j.kv && j.kv["pub:m:" + (SITE.coach || "coach-5gb96f") + ":roster"];
+        LIST = files.slice();
+        (Array.isArray(roster) ? roster : []).forEach(function (x) { if (x && x.slug && LIST.indexOf(x.slug) < 0) LIST.push(x.slug); });
+        return Promise.all(LIST.map(function (slug) {
+          var L = j.list[slug] || { days: {}, routine: null, kv: {} };
+          var pf = L.kv && L.kv["pub:m:" + slug + ":profile"];
+          var getM = files.indexOf(slug) >= 0 || !pf
+            ? fetch("/m/" + slug + "/data.js", { cache: "no-store" }).then(function (r) { if (!r.ok) throw 0; return r.text(); }).then(function (t) { var w = {}; new Function("window", t)(w); if (!w.MEMBER) throw 0; return w.MEMBER; })
+                .catch(function () { return pf ? window.PTR.withExtra(window.PTR.fromProfile(pf), slug) : null; })
+            : fetch("/m/" + slug + "/data.js", { cache: "no-store" }).then(function (r) { if (!r.ok) throw 0; return r.text(); }).then(function (t) { var w = {}; new Function("window", t)(w); if (!w.MEMBER) throw 0; return w.MEMBER; })
+                .catch(function () { return window.PTR.withExtra(window.PTR.fromProfile(pf), slug); });
+          return getM.then(function (M) {
+            if (!M) return null;
+            var rt = L.routine;
+            if (rt && rt.routine && rt.base === rtBase(M.routine)) { M.routine = rt.routine; M._rted = 1; }
+            return { slug: slug, M: M, days: L.days || {} };
+          }).catch(function () { return null; });
+        })).then(function (rows) {
+          var fin = rows.filter(Boolean);
+          drawRows(fin); counts(fin); renderRank(fin); snapSave(fin); nmDrawApp(); snap = { rows: fin };
+          if (isPad() && !paneSlug) { var last = ""; try { last = sessionStorage.getItem("ptpane") || ""; } catch (e) {} if (last) paneOpen(last); }
+          afterList();
+        });
+      }).catch(function () { renderSlow(); });
   }
 
   /* ---------- 새 회원 추가 (2026-11-17 선생님 "앱에서도 회원 추가") — 창고 저장소에 저장, 파일 없이 /m/<주소>/ 로 열림(404.html) */
@@ -680,8 +731,7 @@ section.folded .fsum:not(:empty) { display: inline; }
     window.PTR.remove(b.getAttribute("data-slug"), key).then(function () { bnToast("명단에서 뺐어요"); render(); }, function () { b.disabled = false; b.textContent = "빼기"; bnToast("빼지 못했어요 — 다시 눌러 주세요"); });
   });
   render();
-  /* 팀장님 PT 노트용 공개 목록(pub:m:roster-list:members)을 열 때마다 맞춤 — 열쇠가 있는 선생님 폰에서만 (assets/roster.js PTR.publish) */
-  if (bnKey()) window.PTR.publish(bnKey()).catch(function () {});
+  /* 팀장님 PT 노트용 공개 목록(pub:m:roster-list:members)을 열 때마다 맞춤 — afterList() 에서(회원 목록을 다 그린 뒤) */
   document.getElementById("refresh").addEventListener("click", render);
   document.addEventListener("visibilitychange", function () { if (!document.hidden) render(); });
 })();
