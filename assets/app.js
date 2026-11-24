@@ -1343,7 +1343,10 @@
   function mlGuessSlot() { var h = new Date().getHours(); return h >= 4 && h < 10 ? "아침" : h >= 10 && h < 15 ? "점심" : h >= 17 && h < 22 ? "저녁" : "간식"; }
   function mlAddSheet() {
     var today = ymd(new Date()), slot = mlGuessSlot(), img = null, th = null;
-    var body = '<label class="ml-file"><input type="file" id="mlF" accept="image/*"><span class="ml-ph"><b>사진 찍기 · 고르기</b><small>먹기 전에 접시가 다 보이게 찍어요</small></span><img alt="" hidden></label>' +
+    var body = '<div class="ml-file"><span class="ml-ph"><b>음식 사진</b><small>먹기 전에 접시가 다 보이게 찍어요</small></span><img alt="" hidden></div>' +
+      /* 찍기 = capture 로 카메라 바로 열기 / 고르기 = 앨범 (2026-11-24 선생님 "찍기를 고를 수가 없어") */
+      '<div class="ml-pick"><label class="ml-btn"><input type="file" accept="image/*" capture="environment" data-mlf>📷 바로 찍기</label>' +
+      '<label class="ml-btn"><input type="file" accept="image/*" data-mlf>🖼 앨범에서 고르기</label></div>' +
       '<div class="rts-l">끼니</div><div class="ml-slots" role="radiogroup" aria-label="끼니">' +
       ML_SLOTS.map(function (s) { return '<button type="button" role="radio" aria-checked="' + (s === slot) + '" data-s="' + s + '">' + s + '</button>'; }).join("") + '</div>' +
       '<label>먹은 날<input id="mlD" type="date" value="' + today + '" max="' + today + '"></label>' +
@@ -1363,16 +1366,18 @@
         .catch(function () { ok.disabled = false; ok.textContent = "올리기"; sh.msg(rtNetMsg()); });
       return true;
     }, "올리기");
-    var f = sh.querySelector("#mlF"), pv = sh.querySelector(".ml-file img");
-    f.addEventListener("change", function () {
+    var pv = sh.querySelector(".ml-file img");
+    Array.prototype.forEach.call(sh.querySelectorAll("[data-mlf]"), function (f) { f.addEventListener("change", function () {
       var file = f.files && f.files[0];
+      f.value = "";
       if (!file) return;
       sh.msg("사진 준비 중…");
       Promise.all([mlShrink(file, 1280, 0.8), mlShrink(file, 240, 0.6)]).then(function (a) {
         img = a[0]; th = a[1]; pv.src = "data:image/jpeg;base64," + img; pv.hidden = false;
         sh.querySelector(".ml-ph").hidden = true; sh.msg("");
+        Array.prototype.forEach.call(sh.querySelectorAll(".ml-btn"), function (x) { x.classList.add("again"); });
       }).catch(function () { sh.msg("이 사진은 못 읽었어요. 다른 사진으로 해 주세요"); });
-    });
+    }); });
     Array.prototype.forEach.call(sh.querySelectorAll(".ml-slots button"), function (b) {
       b.addEventListener("click", function () {
         slot = b.getAttribute("data-s");
