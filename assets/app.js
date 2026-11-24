@@ -816,7 +816,10 @@
     wrap.className = "ibsheet";
     wrap.innerHTML = '<div class="ibs-back" data-close></div><form class="ibs-card" novalidate>' +
       '<div class="ibs-top"><h3>인바디 올리기</h3><button type="button" class="ibs-x" data-close aria-label="닫기">×</button></div>' +
-      '<label class="ibs-file"><input type="file" id="ibFile" accept="image/*"><span class="ibs-ph"><b>결과지 사진 찍기 · 고르기</b><small>사진을 올리면 숫자를 자동으로 읽어 채워요</small></span><img alt="" hidden></label>' +
+      '<div class="ibs-file"><span class="ibs-ph"><b>결과지 사진</b><small>사진을 올리면 숫자를 자동으로 읽어 채워요</small></span><img alt="" hidden></div>' +
+      /* 찍기 = capture 로 카메라 바로 / 고르기 = 앨범 (2026-11-24 식단 사진과 같이) */
+      '<div class="ml-pick"><label class="ml-btn"><input type="file" accept="image/*" capture="environment" data-ibf>📷 바로 찍기</label>' +
+      '<label class="ml-btn"><input type="file" accept="image/*" data-ibf>🖼 앨범에서 고르기</label></div>' +
       '<label class="ibs-f"><span>측정한 날</span><input type="date" id="ibDate" value="' + ymd(new Date()) + '" max="' + ymd(new Date()) + '"></label>' +
       '<p class="ibs-hint">결과지 맨 위 <b>체성분분석 · 골격근·지방분석</b> 칸의 숫자를 넣어요</p>' +
       '<div class="ibs-nums">' +
@@ -828,12 +831,13 @@
       '<button class="btn fill ibs-save" type="submit">저장하기</button></form>';
     document.body.appendChild(wrap);
     document.documentElement.classList.add("ib-lock");
-    var form = wrap.querySelector("form"), file = wrap.querySelector("#ibFile"), pv = wrap.querySelector(".ibs-file img"), msg = wrap.querySelector(".ibs-msg");
+    var form = wrap.querySelector("form"), pv = wrap.querySelector(".ibs-file img"), msg = wrap.querySelector(".ibs-msg");
     var b64 = null, busy = false, ocrRun = 0;
     function close() { wrap.remove(); document.documentElement.classList.remove("ib-lock"); }
     Array.prototype.forEach.call(wrap.querySelectorAll("[data-close]"), function (x) { x.addEventListener("click", close); });
-    file.addEventListener("change", function () {
+    Array.prototype.forEach.call(wrap.querySelectorAll("[data-ibf]"), function (file) { file.addEventListener("change", function () {
       var f = file.files && file.files[0];
+      file.value = "";
       if (!f) return;
       msg.textContent = "사진 준비 중…";
       ibShrink(f, 1800).then(function (d) {
@@ -862,7 +866,7 @@
             msg.className = "ibs-msg"; msg.textContent = "자동 읽기가 안 됐어요. 숫자를 직접 넣어 주세요";
           });
       }).catch(function () { msg.className = "ibs-msg"; msg.textContent = "이 사진은 못 읽었어요. 다른 사진으로 해 주세요"; });
-    });
+    }); });
     Array.prototype.forEach.call(wrap.querySelectorAll(".ibs-f input"), function (inp) {
       inp.addEventListener("input", function () { inp.classList.remove("auto"); });
     });
