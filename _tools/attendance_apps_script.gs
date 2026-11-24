@@ -17,7 +17,7 @@ const RT_KEY_HASH = '370cf0eead41342f5a7696250e0896087fac51bd3cad28fd96955a7772b
 const IB_SHEET = '인바디';
 const IB_FOLDER = 'PT노트 인바디 사진';
 // 2026-11-18 식단 사진: 회원이 먹은 음식 사진을 올림 → 구글 드라이브 "PT노트 식단 사진" 폴더(원본) + 시트 "식단사진" 탭(작은 사진·끼니·메모·선생님 한마디).
-//   보기 GET a=meal(최근 35일) · a=meal_img&id=(원본) · a=meal_del&id= / 올리기 POST meal_add · 선생님 한마디 POST meal_cmt(선생님 열쇠).
+//   보기 GET a=meal(최근 35일) · a=meal_img&id=(원본) · a=meal_del&id= / 올리기 POST meal_add · 고치기 POST meal_edit · 선생님 한마디 POST meal_cmt(선생님 열쇠).
 const ML_SHEET = '식단사진';
 const ML_FOLDER = 'PT노트 식단 사진';
 
@@ -437,6 +437,28 @@ function doPost(e) {
       const photo = mlFolder_().createFile(blob).getId();
       const id = Utilities.getUuid().replace(/-/g, '').slice(0, 10);
       mlSheet_().appendRow([m, String(b.n || '').slice(0, 40), "'" + d, String(b.slot || '').slice(0, 10), String(b.memo || '').slice(0, 200), photo, th, '', id, new Date()]);
+      return json_({ ok: true, meals: mlList_(m, 35) });
+    } finally {
+      lock.releaseLock();
+    }
+  }
+  if (b.a === 'meal_edit') {   // 식단 기록 고치기 (회원 폰, 2026-11-24) {m, id, d, slot, memo, img?, th?} — 한마디는 그대로
+    const d = String(b.d || '');
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) return json_({ ok: false, error: 'date' });
+    if (b.img && String(b.img).length > 8000000) return json_({ ok: false, error: 'img' });
+    if (b.th && String(b.th).length > 45000) return json_({ ok: false, error: 'thumb' });
+    const lock = LockService.getScriptLock();
+    lock.waitLock(20000);
+    try {
+      const s = mlSheet_(), r = mlRow_(s, m, String(b.id || ''));
+      if (!r) return json_({ ok: false, error: 'id' });
+      s.getRange(r.row, 3, 1, 3).setValues([["'" + d, String(b.slot || '').slice(0, 10), String(b.memo || '').slice(0, 200)]]);
+      if (b.img) {
+        const blob = Utilities.newBlob(Utilities.base64Decode(String(b.img)), 'image/jpeg', m + '_' + d + '_' + Date.now() + '.jpg');
+        const photo = mlFolder_().createFile(blob).getId();
+        if (r.photo) { try { DriveApp.getFileById(r.photo).setTrashed(true); } catch (err) {} }
+        s.getRange(r.row, 6, 1, 2).setValues([[photo, String(b.th || '')]]);
+      }
       return json_({ ok: true, meals: mlList_(m, 35) });
     } finally {
       lock.releaseLock();

@@ -1345,21 +1345,24 @@
     });
   }
   function mlGuessSlot() { var h = new Date().getHours(); return h >= 4 && h < 10 ? "아침" : h >= 10 && h < 15 ? "점심" : h >= 17 && h < 22 ? "저녁" : "간식"; }
-  function mlAddSheet() {
-    var today = ymd(new Date()), slot = mlGuessSlot(), img = null, th = null;
-    var body = '<div class="ml-file"><span class="ml-ph"><b>음식 사진</b><small>먹기 전에 접시가 다 보이게 찍어요</small></span><img alt="" hidden></div>' +
+  function mlAddSheet(r) {   /* r = 고칠 기록 (없으면 새로 올리기) — 2026-11-24 선생님 "사진 올린거 수정할 수 있게" */
+    var today = ymd(new Date()), slot = r ? (r.slot || "간식") : mlGuessSlot(), img = null, th = null;
+    var body = '<div class="ml-file">' + (r ? '<img alt="" src="data:image/jpeg;base64,' + r.th + '">' :
+      '<span class="ml-ph"><b>음식 사진</b><small>먹기 전에 접시가 다 보이게 찍어요</small></span><img alt="" hidden>') + '</div>' +
+      (r ? '<p class="ml-chg">사진도 바꾸려면 아래에서 새로 찍거나 골라요</p>' : '') +
       /* 찍기 = capture 로 카메라 바로 열기 / 고르기 = 앨범 (2026-11-24 선생님 "찍기를 고를 수가 없어") */
       '<div class="ml-pick"><label class="ml-btn"><input type="file" accept="image/*" capture="environment" data-mlf>📷 바로 찍기</label>' +
       '<label class="ml-btn"><input type="file" accept="image/*" data-mlf>🖼 앨범에서 고르기</label></div>' +
       '<div class="rts-l">끼니</div><div class="ml-slots" role="radiogroup" aria-label="끼니">' +
       ML_SLOTS.map(function (s) { return '<button type="button" role="radio" aria-checked="' + (s === slot) + '" data-s="' + s + '">' + s + '</button>'; }).join("") + '</div>' +
-      '<label>먹은 날<input id="mlD" type="date" value="' + today + '" max="' + today + '"></label>' +
-      '<label>메모 <small>비워도 돼요 · 예: 현미밥 반 공기, 닭가슴살</small><input id="mlM" maxlength="80" autocomplete="off"></label>';
-    var sh = rtSheet("먹은 음식 올리기", body, function (sh) {
-      if (!img) return "사진을 먼저 골라 주세요";
+      '<label>먹은 날<input id="mlD" type="date" value="' + (r ? r.d : today) + '" max="' + today + '"></label>' +
+      '<label>메모 <small>비워도 돼요 · 예: 현미밥 반 공기, 닭가슴살</small><input id="mlM" maxlength="80" autocomplete="off" value="' + (r ? esc(r.memo || "") : "") + '"></label>';
+    var sh = rtSheet(r ? "식단 기록 고치기" : "먹은 음식 올리기", body, function (sh) {
+      if (!img && !r) return "사진을 먼저 골라 주세요";
       var d = fv(sh, "mlD");
       if (!d) return "먹은 날을 골라 주세요";
       if (!ATT_API) return "저장할 곳이 아직 준비 안 됐어요";
+      if (r) { mlEditSave(sh, r, { d: d, slot: slot, memo: fv(sh, "mlM"), img: img, th: th }); return true; }
       var ok = sh.querySelector("[data-ok]"); ok.disabled = true; ok.textContent = "올리는 중…"; sh.msg("");
       fetch(ATT_API, { method: "POST", body: JSON.stringify({ a: "meal_add", m: SLUG, n: M._real || M.name, d: d, slot: slot, memo: fv(sh, "mlM"), img: img, th: th }) })
         .then(function (r) { return r.json(); })
@@ -1369,7 +1372,7 @@
         })
         .catch(function () { ok.disabled = false; ok.textContent = "올리기"; sh.msg(rtNetMsg()); });
       return true;
-    }, "올리기");
+    }, r ? "저장" : "올리기");
     var pv = sh.querySelector(".ml-file img");
     Array.prototype.forEach.call(sh.querySelectorAll("[data-mlf]"), function (f) { f.addEventListener("change", function () {
       var file = f.files && f.files[0];
@@ -1378,7 +1381,7 @@
       sh.msg("사진 준비 중…");
       Promise.all([mlShrink(file, 1280, 0.8), mlShrink(file, 240, 0.6)]).then(function (a) {
         img = a[0]; th = a[1]; pv.src = "data:image/jpeg;base64," + img; pv.hidden = false;
-        sh.querySelector(".ml-ph").hidden = true; sh.msg("");
+        var ph = sh.querySelector(".ml-ph"); if (ph) ph.hidden = true; sh.msg("");
         Array.prototype.forEach.call(sh.querySelectorAll(".ml-btn"), function (x) { x.classList.add("again"); });
       }).catch(function () { sh.msg("이 사진은 못 읽었어요. 다른 사진으로 해 주세요"); });
     }); });
@@ -1389,6 +1392,41 @@
       });
     });
   }
+  /* 고치기 저장: 창고 meal_edit (새 버전) → 옛 창고면 새로 올리고 예전 것 지우기로 대신 */
+  function mlEditSave(sh, r, v) {
+    var ok = sh.querySelector("[data-ok]"); ok.disabled = true; ok.textContent = "저장 중…"; sh.msg("");
+    function fail(t) { ok.disabled = false; ok.textContent = "저장"; sh.msg(t || rtNetMsg()); }
+    function done(meals) { mlReady = true; mlSet(meals); sh.close(); mlRefresh(); attToast("식단 기록을 고쳤어요"); }
+    var q = { a: "meal_edit", m: SLUG, id: r.id, d: v.d, slot: v.slot, memo: v.memo };
+    if (v.img) { q.img = v.img; q.th = v.th; }
+    fetch(ATT_API, { method: "POST", body: JSON.stringify(q) })
+      .then(function (x) { return x.json(); })
+      .then(function (j) {
+        if (j && j.ok && j.meals) return done(j.meals);
+        if (!j || j.error !== "action") return fail("못 고쳤어요 — 다시 눌러 주세요");
+        /* 옛 창고: 같은 내용으로 새로 올리고 예전 것을 지움 */
+        var key = rtKey();
+        if (r.cmt && !(CAN_EDIT && key)) return fail("선생님 한마디가 달린 사진은 지금 고칠 수 없어요 — 지우고 다시 올려 주세요");
+        var getImg = v.img ? Promise.resolve([v.img, v.th]) :
+          fetch(ATT_API + "?m=" + encodeURIComponent(SLUG) + "&a=meal_img&id=" + encodeURIComponent(r.id), { cache: "no-store" })
+            .then(function (x) { return x.json(); })
+            .then(function (k) { if (!k || !k.ok || !k.data) throw new Error("img"); return [String(k.data).replace(/^data:[^,]*,/, ""), r.th]; });
+        var before = {};
+        (mlData || []).forEach(function (x) { before[x.id] = 1; });
+        return getImg.then(function (im) {
+          return fetch(ATT_API, { method: "POST", body: JSON.stringify({ a: "meal_add", m: SLUG, n: M._real || M.name, d: v.d, slot: v.slot, memo: v.memo, img: im[0], th: im[1] }) })
+            .then(function (x) { return x.json(); });
+        }).then(function (k) {
+          if (!k || !k.ok || !k.meals) throw new Error("add");
+          var nu = null; k.meals.forEach(function (x) { if (!before[x.id] && !nu) nu = x; });
+          var cmt = r.cmt && nu ? fetch(ATT_API, { method: "POST", body: JSON.stringify({ a: "meal_cmt", m: SLUG, key: key, id: nu.id, c: r.cmt }) }).catch(function () {}) : Promise.resolve();
+          return cmt.then(function () {
+            return fetch(ATT_API + "?m=" + encodeURIComponent(SLUG) + "&a=meal_del&id=" + encodeURIComponent(r.id), { cache: "no-store" }).then(function (x) { return x.json(); });
+          });
+        }).then(function (k) { if (!k || !k.ok || !k.meals) throw new Error("del"); done(k.meals); });
+      })
+      .catch(function () { fail(); });
+  }
   function mlFind(id) { var r = null; (mlData || []).forEach(function (x) { if (x.id === id) r = x; }); return r; }
   function mlView(id) {
     var r = mlFind(id);
@@ -1398,7 +1436,7 @@
       (CAN_EDIT ? '<label>선생님 한마디 <small>회원님 노트에 바로 보여요</small><textarea id="mlC" rows="2" maxlength="200">' + esc(r.cmt || "") + '</textarea></label>' +
         '<label id="sKeyWrap"' + (rtKey() ? ' hidden' : '') + '>선생님 열쇠 <small>처음 한 번만</small><input id="sKey" type="password" autocomplete="off"></label>'
         : (r.cmt ? '<div class="ml-cmt"><small>' + esc(TRN) + ' 트레이너 한마디</small>' + esc(r.cmt) + '</div>' : '')) +
-      '<button type="button" class="rtb ml-del">사진 지우기</button>';
+      '<div class="ml-acts"><button type="button" class="rtb ml-edit">✎ 고치기</button><button type="button" class="rtb ml-del">사진 지우기</button></div>';
     var sh = rtSheet("식단 사진", body, CAN_EDIT ? function (sh) {
       var key = fv(sh, "sKey") || rtKey();
       if (!key) { sh.querySelector("#sKeyWrap").hidden = false; return "선생님 열쇠를 넣어 주세요"; }
@@ -1419,6 +1457,7 @@
       .then(function (x) { return x.json(); })
       .then(function (j) { var im = sh.querySelector(".ml-view img"); if (j && j.ok && j.data && im) im.src = j.data; })
       .catch(function () {});
+    sh.querySelector(".ml-edit").addEventListener("click", function () { sh.close(); mlAddSheet(r); });
     var del = sh.querySelector(".ml-del");
     del.addEventListener("click", function () {
       if (!del.classList.contains("arm")) { del.classList.add("arm"); del.textContent = "한 번 더 누르면 지워요"; return; }
