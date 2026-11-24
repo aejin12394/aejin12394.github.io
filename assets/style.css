@@ -1309,6 +1309,9 @@ body, button, input, textarea, select { font-family: var(--font); }
 .mlset span { font-size: 14px; color: var(--sub); }
 /* 올리기 창 */
 .ml-file { position: relative; display: block !important; border: 1.6px dashed #444; border-radius: 14px; overflow: hidden; background: #fafafa; }
+.ml-when { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.ml-when label { min-width: 0; }
+.mlt-t { font-style: normal; font-weight: 500; font-size: .85em; color: var(--faint); }
 .ml-acts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
 .ml-acts .rtb { width: 100%; margin: 0; }
 .ml-chg { margin: 6px 0 0; font-size: 13px; color: var(--faint); text-align: center; }

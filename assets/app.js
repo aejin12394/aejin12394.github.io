@@ -1229,7 +1229,7 @@
        · GET a=meal / a=meal_img / a=meal_del · 선생님 한마디 POST meal_cmt(선생님 열쇠). 창고가 옛 버전이면 "곧 열려요". */
   var ML_K = "pub:m:" + SLUG + ":meallog", ML_LS = "ptml_" + SLUG, ML_SLOTS = ["아침", "점심", "저녁", "간식"];
   var mlData = null, mlReady = null, mlErr = false, mlAll = false;
-  try { mlData = JSON.parse(localStorage.getItem(ML_LS) || "null"); } catch (e) {}
+  try { mlData = JSON.parse(localStorage.getItem(ML_LS) || "null"); if (mlData) mlData.forEach(mlNorm); } catch (e) {}
   function mlAuto() {
     if (/·/.test(M.name || "")) return false;
     var g = wgGoal();
@@ -1241,8 +1241,16 @@
     var f = KV[ML_K];
     return f === true ? true : f === false ? false : mlAuto();
   }
+  /* 먹은 시간 (2026-11-25 선생님 "시간 설정도"): 창고 끼니 칸에 "점심|12:30" 으로 같이 저장 → 창고 재배포 없이 */
+  function mlNorm(r) {
+    var m = String(r.slot || "").match(/^([^|]*)\|(\d{1,2}:\d{2})$/);
+    if (m) { r.slot = m[1]; r.t = (m[2].length === 4 ? "0" : "") + m[2]; }
+    return r;
+  }
+  function mlSlotOut(slot, t) { return t ? slot + "|" + t : slot; }
+  function mlTimeLabel(t) { if (!t) return ""; var h = +t.slice(0, 2), mi = t.slice(3); return (h < 12 ? "오전 " : "오후 ") + ((h % 12) || 12) + ":" + mi; }
   function mlSet(list) {
-    mlData = Array.isArray(list) ? list : []; mlErr = false;
+    mlData = (Array.isArray(list) ? list : []).map(mlNorm); mlErr = false;
     var lim = ymd(new Date(Date.now() - 14 * 86400000));
     try { localStorage.setItem(ML_LS, JSON.stringify(mlData.filter(function (r) { return r.d >= lim; }))); } catch (e) {}
   }
@@ -1264,7 +1272,7 @@
   }
   function mlThumb(r) {
     return '<button type="button" class="mlt" data-ml="' + esc(r.id) + '"><span class="ph">' + (r.th ? '<img src="data:image/jpeg;base64,' + r.th + '" alt="' + esc(r.slot || "식단") + ' 사진" loading="lazy">' : '') + '</span>' +
-      (r.cmt ? '<i>한마디</i>' : '') + '<b>' + esc(r.slot || "식단") + '</b><small>' + esc(r.memo || "") + '</small></button>';
+      (r.cmt ? '<i>한마디</i>' : '') + '<b>' + esc(r.slot || "식단") + (r.t ? ' <em class="mlt-t">' + esc(r.t) + '</em>' : '') + '</b><small>' + esc(r.memo || "") + '</small></button>';
   }
   function mlCoachBar(on) {
     if (!CAN_EDIT) return "";
@@ -1288,7 +1296,9 @@
     days.forEach(function (d) { if (d >= wk && by[d]) { wkDays++; wkN += by[d].length; } });
     var lim = ymd(new Date(Date.now() - 13 * 86400000)), shown = mlAll ? days : days.filter(function (d) { return d >= lim; });
     var body = shown.map(function (d) {
-      var rs = (by[d] || []).slice().sort(function (a, b) { return ML_SLOTS.indexOf(a.slot) - ML_SLOTS.indexOf(b.slot) || a.at - b.at; });
+      var rs = (by[d] || []).slice().sort(function (a, b) {
+        var ka = a.t || ["07:00", "12:00", "18:00", "15:00"][Math.max(0, ML_SLOTS.indexOf(a.slot))], kb = b.t || ["07:00", "12:00", "18:00", "15:00"][Math.max(0, ML_SLOTS.indexOf(b.slot))];
+        return ka < kb ? -1 : ka > kb ? 1 : a.at - b.at; });
       return '<div class="ml-day"><h3>' + mlDayLabel(d) + (rs.length ? '<small>' + rs.length + '장</small>' : '') + '</h3><div class="ml-grid">' +
         rs.map(mlThumb).join("") + (d === today ? '<button type="button" class="mlt add ml-add-one"><span class="ph" aria-hidden="true">+</span><b>' + (rs.length ? '더 올리기' : '오늘 첫 사진') + '</b><small></small></button>' : '') + '</div></div>';
     }).join("");
@@ -1344,9 +1354,10 @@
       fr.readAsDataURL(file);
     });
   }
-  function mlGuessSlot() { var h = new Date().getHours(); return h >= 4 && h < 10 ? "아침" : h >= 10 && h < 15 ? "점심" : h >= 17 && h < 22 ? "저녁" : "간식"; }
+  function mlGuessSlot(h) { if (h === undefined) h = new Date().getHours(); return h >= 4 && h < 10 ? "아침" : h >= 10 && h < 15 ? "점심" : h >= 17 && h < 22 ? "저녁" : "간식"; }
   function mlAddSheet(r) {   /* r = 고칠 기록 (없으면 새로 올리기) — 2026-11-24 선생님 "사진 올린거 수정할 수 있게" */
-    var today = ymd(new Date()), slot = r ? (r.slot || "간식") : mlGuessSlot(), img = null, th = null;
+    var now = new Date(), today = ymd(now), slot = r ? (r.slot || "간식") : mlGuessSlot(), img = null, th = null, slotPicked = !!r;
+    var t0 = r ? (r.t || "") : ("0" + now.getHours()).slice(-2) + ":" + ("0" + now.getMinutes()).slice(-2);
     var body = '<div class="ml-file">' + (r ? '<img alt="" src="data:image/jpeg;base64,' + r.th + '">' :
       '<span class="ml-ph"><b>음식 사진</b><small>먹기 전에 접시가 다 보이게 찍어요</small></span><img alt="" hidden>') + '</div>' +
       (r ? '<p class="ml-chg">사진도 바꾸려면 아래에서 새로 찍거나 골라요</p>' : '') +
@@ -1355,16 +1366,18 @@
       '<label class="ml-btn"><input type="file" accept="image/*" data-mlf>🖼 앨범에서 고르기</label></div>' +
       '<div class="rts-l">끼니</div><div class="ml-slots" role="radiogroup" aria-label="끼니">' +
       ML_SLOTS.map(function (s) { return '<button type="button" role="radio" aria-checked="' + (s === slot) + '" data-s="' + s + '">' + s + '</button>'; }).join("") + '</div>' +
-      '<label>먹은 날<input id="mlD" type="date" value="' + (r ? r.d : today) + '" max="' + today + '"></label>' +
+      '<div class="ml-when"><label>먹은 날<input id="mlD" type="date" value="' + (r ? r.d : today) + '" max="' + today + '"></label>' +
+      '<label>먹은 시간<input id="mlT" type="time" value="' + t0 + '"></label></div>' +
       '<label>메모 <small>비워도 돼요 · 예: 현미밥 반 공기, 닭가슴살</small><input id="mlM" maxlength="80" autocomplete="off" value="' + (r ? esc(r.memo || "") : "") + '"></label>';
     var sh = rtSheet(r ? "식단 기록 고치기" : "먹은 음식 올리기", body, function (sh) {
       if (!img && !r) return "사진을 먼저 골라 주세요";
       var d = fv(sh, "mlD");
       if (!d) return "먹은 날을 골라 주세요";
       if (!ATT_API) return "저장할 곳이 아직 준비 안 됐어요";
-      if (r) { mlEditSave(sh, r, { d: d, slot: slot, memo: fv(sh, "mlM"), img: img, th: th }); return true; }
+      var slotOut = mlSlotOut(slot, fv(sh, "mlT"));
+      if (r) { mlEditSave(sh, r, { d: d, slot: slotOut, memo: fv(sh, "mlM"), img: img, th: th }); return true; }
       var ok = sh.querySelector("[data-ok]"); ok.disabled = true; ok.textContent = "올리는 중…"; sh.msg("");
-      fetch(ATT_API, { method: "POST", body: JSON.stringify({ a: "meal_add", m: SLUG, n: M._real || M.name, d: d, slot: slot, memo: fv(sh, "mlM"), img: img, th: th }) })
+      fetch(ATT_API, { method: "POST", body: JSON.stringify({ a: "meal_add", m: SLUG, n: M._real || M.name, d: d, slot: slotOut, memo: fv(sh, "mlM"), img: img, th: th }) })
         .then(function (r) { return r.json(); })
         .then(function (j) {
           if (!j || !j.ok || !j.meals) { ok.disabled = false; ok.textContent = "올리기"; sh.msg(j && (j.error === "action" || !j.meals) ? "창고(Apps Script)를 새 버전으로 다시 배포해야 올릴 수 있어요" : "못 올렸어요 — 다시 눌러 주세요"); return; }
@@ -1387,9 +1400,15 @@
     }); });
     Array.prototype.forEach.call(sh.querySelectorAll(".ml-slots button"), function (b) {
       b.addEventListener("click", function () {
-        slot = b.getAttribute("data-s");
+        slot = b.getAttribute("data-s"); slotPicked = true;
         Array.prototype.forEach.call(sh.querySelectorAll(".ml-slots button"), function (x) { x.setAttribute("aria-checked", String(x === b)); });
       });
+    });
+    /* 시간을 바꾸면 끼니도 따라 바꿈 (끼니를 직접 누르기 전까지만) */
+    sh.querySelector("#mlT").addEventListener("change", function () {
+      var v = this.value; if (!v || slotPicked) return;
+      slot = mlGuessSlot(+v.slice(0, 2));
+      Array.prototype.forEach.call(sh.querySelectorAll(".ml-slots button"), function (x) { x.setAttribute("aria-checked", String(x.getAttribute("data-s") === slot)); });
     });
   }
   /* 고치기 저장: 창고 meal_edit (새 버전) → 옛 창고면 새로 올리고 예전 것 지우기로 대신 */
@@ -1432,7 +1451,7 @@
     var r = mlFind(id);
     if (!r) return;
     var body = '<div class="ml-view"><img src="data:image/jpeg;base64,' + r.th + '" alt="' + esc(r.slot || "식단") + ' 사진"></div>' +
-      '<p class="ml-meta">' + mlDayLabel(r.d) + ' · ' + esc(r.slot || "식단") + '</p>' + (r.memo ? '<p class="ml-memo">' + esc(r.memo) + '</p>' : '') +
+      '<p class="ml-meta">' + mlDayLabel(r.d) + ' · ' + esc(r.slot || "식단") + (r.t ? ' · ' + mlTimeLabel(r.t) : '') + '</p>' + (r.memo ? '<p class="ml-memo">' + esc(r.memo) + '</p>' : '') +
       (CAN_EDIT ? '<label>선생님 한마디 <small>회원님 노트에 바로 보여요</small><textarea id="mlC" rows="2" maxlength="200">' + esc(r.cmt || "") + '</textarea></label>' +
         '<label id="sKeyWrap"' + (rtKey() ? ' hidden' : '') + '>선생님 열쇠 <small>처음 한 번만</small><input id="sKey" type="password" autocomplete="off"></label>'
         : (r.cmt ? '<div class="ml-cmt"><small>' + esc(TRN) + ' 트레이너 한마디</small>' + esc(r.cmt) + '</div>' : '')) +
