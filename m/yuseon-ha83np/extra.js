@@ -30,26 +30,26 @@ window.MEMBER_EXTRA = {
     },
     {
       id: "1121-smith-narrow-squat", record: [["빈 바", 15], [2.5, 15], [5, 15]], dir: "media/form-1121-smith-narrow-squat/", date: "2026. 11. 21",
-      exercise: "스미스머신 내로우 스쿼트", exercise_en: "Smith Machine Narrow Squat", part: "하체",
-      targets: ["허벅지 앞 라인", "하체 힘 기르기", "바른 스쿼트 자세"],
-      benefit: "스미스머신 바를 등에 올리고 발을 골반 너비보다 좁게 모아 앉는 스쿼트예요. 바가 레일을 따라 움직여서 자세에 집중할 수 있고, 허벅지 앞을 많이 써요.",
-      key_point: "발은 좁게 · 무릎은 발끝 방향으로, 가슴 펴고 내려갔다 발바닥 전체로 밀어 일어나기!",
+      exercise: "스미스머신 내로우 스쿼트", exercise_en: "Smith Machine Narrow Squat", part: "엉덩이",
+      targets: ["엉덩이 (힙 업)", "힙 아래 라인", "바른 스쿼트 자세"],
+      benefit: "스미스머신 바를 등에 올리고 발을 좁게 모아 앉는 스쿼트예요. 오늘은 엉덩이를 뒤로 빼며 앉고 발뒤꿈치로 밀어 올라와서 엉덩이를 타겟으로 했어요.",
+      key_point: "엉덩이를 뒤로 쭉 빼며 앉고, 발뒤꿈치로 밀며 엉덩이를 조여 일어나기!",
       good_points: [
-        { title: "가슴을 폈어요", desc: "바를 등에 단단히 올리고 가슴을 펴서 상체가 무너지지 않았어요." },
-        { title: "깊이 앉았어요", desc: "허벅지가 바닥과 평행해질 만큼 충분히 내려갔어요." },
+        { title: "엉덩이를 뒤로 뺐어요", desc: "무릎보다 엉덩이가 먼저 뒤로 가면서 앉아 엉덩이에 힘이 실렸어요." },
+        { title: "깊이 앉았어요", desc: "엉덩이가 충분히 늘어나는 곳까지 내려갔어요." },
         { title: "무게를 올렸어요", desc: "빈 바에서 2.5kg, 5kg까지 올리며 15회씩 해냈어요." }
       ],
-      primary_muscles: [{ name: "대퇴사두근", where: "허벅지 앞쪽" }],
-      secondary_muscles: "대둔근 · 햄스트링 · 코어",
-      feel_good: "일어날 때 허벅지 앞이 뜨겁게 차오르는 느낌",
-      feel_stop: "무릎 앞이 찌릿하거나 허리가 뻐근하면 앉는 깊이를 줄여요",
+      primary_muscles: [{ name: "대둔근", where: "엉덩이" }],
+      secondary_muscles: "햄스트링 · 대퇴사두근 · 코어",
+      feel_good: "일어날 때 엉덩이가 꽉 조이는 느낌",
+      feel_stop: "허벅지 앞만 타거나 허리가 뻐근하면 엉덩이를 더 뒤로 빼고 깊이를 줄여요",
       steps: [
-        { title: "준비 자세", desc: "바를 등 위(승모근)에 올리고 손으로 잡아요. 발은 골반 너비보다 좁게, 발끝은 살짝 바깥으로.", chip: "배에 힘 주기", media: "step1.jpg" },
-        { title: "앉기", desc: "가슴을 편 채 무릎이 발끝 방향으로 나가게 천천히 앉아요.", chip: "앉으며 들이마시기", media: "step2.webp", loop: true },
-        { title: "밀어 일어나기", desc: "발바닥 전체로 바닥을 밀며 곧게 일어나요.", chip: "일어나며 후~", media: "step3.webp", loop: true }
+        { title: "준비 자세", desc: "바를 등 위(승모근)에 올리고 손으로 잡아요. 발은 좁게 모아 바보다 살짝 앞에 둬요.", chip: "배에 힘 주기", media: "step1.jpg" },
+        { title: "엉덩이 뒤로 앉기", desc: "의자에 앉듯 엉덩이를 뒤로 빼면서 가슴을 편 채 천천히 앉아요.", chip: "앉으며 들이마시기", media: "step2.webp", loop: true },
+        { title: "발뒤꿈치로 일어나기", desc: "발뒤꿈치로 바닥을 밀고 엉덩이를 조이며 곧게 일어나요.", chip: "일어나며 후~", media: "step3.webp", loop: true }
       ],
-      do: ["무릎은 발끝 방향으로", "가슴 펴고 시선 앞", "발바닥 전체로 밀기"],
-      dont: ["무릎 안으로 모이기", "발뒤꿈치 들기", "허리 둥글게 말기"]
+      do: ["엉덩이 먼저 뒤로", "무게는 발뒤꿈치에", "일어나며 엉덩이 조이기"],
+      dont: ["무릎부터 앞으로 나가기", "발뒤꿈치 들기", "허리 둥글게 말기"]
     },
     {
       id: "1121-smith-step-up", record: [["빈 바", 15], ["빈 바", 15], ["빈 바", 15]], dir: "media/form-1121-smith-step-up/", date: "2026. 11. 21",
