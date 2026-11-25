@@ -2,6 +2,7 @@
    404.html·roster.js 가 window.MEMBER_EXTRA 를 창고 정보에 합침 (forms·notices 는 앞에 붙임). 최신이 위. */
 window.MEMBER_EXTRA = {
   notices: [
+    { date: "2026. 11. 25", title: "복근 자세 복습지 4개가 올라왔어요", body: "11월 13일 PT 4회차 복근 운동 — 호흡법 · 테이블 탑 · 데드버그 · 레그 트위스트 영상으로 자세를 다시 확인해 보세요.", link: "#forms" },
     { date: "2026. 11. 25", title: "등 운동 자세 복습지 3개가 올라왔어요", body: "11월 18일 PT 5회차 등 운동 — 덤벨 월 슬라이드 · 암 풀다운 · 시티드 로우 머신 영상으로 자세를 다시 확인해 보세요.", link: "#forms" }
   ],
   forms: [
@@ -73,6 +74,98 @@ window.MEMBER_EXTRA = {
       ],
       do: ["가슴 펴고 상체 고정", "팔꿈치를 뒤로", "펼 때 천천히"],
       dont: ["상체를 뒤로 젖히며 당기기", "어깨 으쓱", "무게에 끌려가기"]
+    },
+    {
+      id: "1113-breathing", wide: true, dir: "media/form-1113-breathing/", date: "2026. 11. 13",
+      exercise: "호흡법", exercise_en: "Core Breathing", part: "복근",
+      targets: ["복압 잡는 법", "허리 보호", "모든 운동의 기본"],
+      benefit: "누워서 다리를 테이블 탑 자세로 들고, 무릎 사이 공과 정강이 폼롤러를 잡은 채 숨을 쉬는 연습이에요. 배 둘레에 힘을 채우는 법(복압)을 익히면 모든 운동에서 허리를 지킬 수 있어요.",
+      key_point: "코로 들이마셔 배 둘레를 360도로 채우고, 입으로 '후~' 길게 내쉬며 배를 납작하게 조이기!",
+      good_points: [
+        { title: "허리를 바닥에 붙였어요", desc: "다리를 든 채로도 허리가 뜨지 않게 바닥에 눌렀어요." },
+        { title: "손으로 배를 느꼈어요", desc: "배 위에 손을 올리고 숨 쉴 때 배가 부풀고 줄어드는 걸 확인했어요." },
+        { title: "다리를 고정했어요", desc: "공과 폼롤러를 꼭 잡아 다리가 흔들리지 않았어요." }
+      ],
+      primary_muscles: [{ name: "복횡근", where: "배 둘레 깊은 곳" }, { name: "복직근·복사근", where: "배 앞·옆" }],
+      secondary_muscles: "횡격막 · 골반저근",
+      feel_good: "내쉴 때 배꼽 아래가 단단하게 조여지는 느낌",
+      feel_stop: "어지럽거나 목·어깨에 힘이 들어가면 쉬었다가 천천히 다시",
+      steps: [
+        { title: "자세 잡기", desc: "누워서 무릎·고관절을 90도로 들고 무릎 사이에 공, 정강이 사이에 폼롤러를 껴요. 손은 배 위에.", chip: "허리 바닥에", media: "step1.jpg" },
+        { title: "들이마시기", desc: "코로 천천히 들이마시며 배와 옆구리를 360도로 부풀려요. 어깨는 올라가지 않게.", chip: "코로 들이마시기", media: "step2.webp", loop: true },
+        { title: "길게 내쉬기", desc: "입으로 '후~' 길게 내쉬며 배를 납작하게 조이고 허리를 바닥에 눌러요.", chip: "입으로 후~", media: "step3.webp", loop: true }
+      ],
+      do: ["허리는 바닥에 붙인 채", "내쉴 때 길게", "공·폼롤러 꼭 잡기"],
+      dont: ["어깨로 숨 쉬기", "숨 참기", "허리 들뜨기"]
+    },
+    {
+      id: "1113-table-top", wide: true, record: [[null, 10], [null, 10], [null, 10], [null, 10]], dir: "media/form-1113-table-top/", date: "2026. 11. 13",
+      exercise: "테이블 탑", exercise_en: "Table Top", part: "복근",
+      targets: ["아랫배", "복압 유지", "허리 안정"],
+      benefit: "누운 자세에서 무릎을 굽힌 채 다리를 테이블 모양(무릎·고관절 90도)으로 들었다 내리는 운동이에요. 허리를 바닥에 붙인 채 아랫배 힘으로 다리를 움직이는 연습이에요.",
+      key_point: "허리는 바닥에 꾹, 내쉬면서 아랫배 힘으로 다리를 들어 올리기!",
+      good_points: [
+        { title: "허리를 지켰어요", desc: "다리를 들고 내릴 때 허리가 바닥에서 뜨지 않았어요." },
+        { title: "무릎 사이 공을 잡았어요", desc: "공을 꼭 잡아 다리가 벌어지지 않고 가운데로 움직였어요." },
+        { title: "천천히 내렸어요", desc: "발이 툭 떨어지지 않게 버티며 10회씩 4세트를 해냈어요." }
+      ],
+      primary_muscles: [{ name: "복직근 아래쪽", where: "아랫배" }],
+      secondary_muscles: "복횡근 · 복사근 · 장요근",
+      feel_good: "다리를 들 때 아랫배가 조여지는 느낌",
+      feel_stop: "허리가 뜨거나 아프면 다리를 드는 높이를 줄여요",
+      steps: [
+        { title: "누워서 준비", desc: "무릎을 세우고 누워 무릎 사이에 공을 껴요. 손은 배 위, 허리는 바닥에 붙여요.", chip: "배에 힘 주기", media: "step1.jpg" },
+        { title: "다리 들기", desc: "숨을 내쉬며 아랫배 힘으로 무릎·고관절이 90도가 될 때까지 다리를 들어요.", chip: "들며 후~", media: "step2.webp", loop: true },
+        { title: "천천히 내리기", desc: "허리가 뜨지 않게 버티면서 발끝을 바닥에 천천히 내려요.", chip: "내리며 들이마시기", media: "step3.webp", loop: true }
+      ],
+      do: ["허리는 바닥에 붙인 채", "내쉬면서 들기", "천천히 내리기"],
+      dont: ["허리 들뜨기", "반동으로 다리 던지기", "숨 참기"]
+    },
+    {
+      id: "1113-dead-bug", wide: true, record: [[null, 20], [null, 20], [null, 20]], dir: "media/form-1113-dead-bug/", date: "2026. 11. 13",
+      exercise: "데드버그 (팔 고정)", exercise_en: "Dead Bug (Arms Fixed)", part: "복근",
+      targets: ["코어 안정", "허리 보호", "좌우 균형"],
+      benefit: "누워서 다리를 테이블 탑으로 들고, 팔은 고정한 채 한쪽 다리씩 길게 뻗었다 돌아오는 운동이에요. 다리가 움직여도 허리와 골반이 흔들리지 않게 버티는 힘을 길러요.",
+      key_point: "허리는 바닥에 붙인 채, 한 다리씩 길게 뻗으며 '후~' 내쉬기!",
+      good_points: [
+        { title: "팔을 고정했어요", desc: "팔은 움직이지 않고 다리만 번갈아 움직였어요." },
+        { title: "다리를 길게 뻗었어요", desc: "발끝까지 멀리 뻗어 아랫배가 길게 버텼어요." },
+        { title: "20회씩 3세트", desc: "양쪽을 번갈아 20회씩 3세트를 끝까지 해냈어요." }
+      ],
+      primary_muscles: [{ name: "복직근·복횡근", where: "배 앞·깊은 곳" }],
+      secondary_muscles: "복사근 · 장요근",
+      feel_good: "다리를 뻗을 때 배가 단단하게 버티는 느낌",
+      feel_stop: "허리가 뜨거나 아프면 다리를 덜 뻗거나 높이 뻗어요",
+      steps: [
+        { title: "테이블 탑 자세", desc: "누워서 무릎·고관절 90도로 다리를 들고 팔은 고정해요. 허리는 바닥에.", chip: "배에 힘 주기", media: "step1.jpg" },
+        { title: "한 다리 뻗기", desc: "숨을 내쉬며 한쪽 다리를 바닥 가까이 길게 뻗어요. 반대 다리는 그대로.", chip: "뻗으며 후~", media: "step2.webp", loop: true },
+        { title: "돌아와서 바꾸기", desc: "들이마시며 다리를 제자리로 가져오고 반대쪽 다리를 뻗어요.", chip: "돌아오며 들이마시기", media: "step3.webp", loop: true }
+      ],
+      do: ["허리는 바닥에 붙인 채", "천천히 번갈아", "내쉬면서 뻗기"],
+      dont: ["허리 들뜨기", "다리를 빠르게 차기", "숨 참기"]
+    },
+    {
+      id: "1113-leg-twist", wide: true, record: [[null, 20], [null, 20], [null, 20]], dir: "media/form-1113-leg-twist/", date: "2026. 11. 13",
+      exercise: "레그 트위스트", exercise_en: "Leg Twist", part: "복근",
+      targets: ["옆구리 (복사근)", "허리 라인", "코어 회전 힘"],
+      benefit: "팔꿈치로 상체를 받치고 기대 앉아, 모은 다리를 좌우로 넘겼다 돌아오는 운동이에요. 옆구리(복사근)를 써서 허리 라인을 잡아 줘요.",
+      key_point: "두 다리는 붙인 채, 옆구리 힘으로 천천히 좌우로 넘기기!",
+      good_points: [
+        { title: "상체를 받쳤어요", desc: "팔꿈치로 단단히 받쳐 상체가 흔들리지 않았어요." },
+        { title: "다리를 붙였어요", desc: "두 다리를 모은 채 같이 움직여 옆구리에 힘이 들어갔어요." },
+        { title: "20회씩 3세트", desc: "좌우를 번갈아 20회씩 3세트를 끝까지 해냈어요." }
+      ],
+      primary_muscles: [{ name: "복사근", where: "옆구리" }],
+      secondary_muscles: "복직근 · 장요근",
+      feel_good: "다리를 넘길 때 반대쪽 옆구리가 당기며 버티는 느낌",
+      feel_stop: "허리가 비틀리며 아프면 넘기는 폭을 줄여요",
+      steps: [
+        { title: "기대 앉기", desc: "팔꿈치로 바닥을 짚고 상체를 뒤로 기대요. 두 다리는 붙여서 무릎을 살짝 굽혀요.", chip: "배에 힘 주기", media: "step1.jpg" },
+        { title: "옆으로 넘기기", desc: "숨을 내쉬며 붙인 다리를 한쪽 옆으로 천천히 넘겨요.", chip: "넘기며 후~", media: "step2.webp", loop: true },
+        { title: "반대쪽으로", desc: "옆구리 힘으로 가운데로 돌아와 반대쪽으로 넘겨요.", chip: "돌아오며 들이마시기", media: "step3.webp", loop: true }
+      ],
+      do: ["두 다리 붙이기", "천천히 좌우로", "상체는 고정"],
+      dont: ["반동으로 휙 넘기기", "어깨 으쓱", "숨 참기"]
     }
   ]
 };
